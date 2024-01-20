@@ -62,7 +62,7 @@ public class JdbcEventStore implements EventStore {
             if (isNotBlank(request.getRequestId()) && !requestLog.log(UUID.fromString(request.getRequestId()))) {
                 return List.of();
             }
-            final var streamIds = streams.lookupIds(request);
+            //final var streamIds = streams.lookupIds(request);
             final var result = new ArrayList<EventData>(request.getEventCount());
             final var edb = EventData.newBuilder();
             jdbi.useHandle(h -> {
@@ -71,7 +71,7 @@ public class JdbcEventStore implements EventStore {
                     final var millis = clock.millis();
                     final var seqNo = globalSequenceNo.next();
                     batch.bind(0, UUID.fromString(ed.getId()))
-                            .bind(1, streamIds.getDbId(ed.getStreamId()))
+                            .bind(1, UUID.fromString(ed.getStreamId()))
                             .bind(2, ed.getVersion())
                             .bind(3, eventTypes.getEventTypeId(ed.getType()))
                             .bind(4, millis)

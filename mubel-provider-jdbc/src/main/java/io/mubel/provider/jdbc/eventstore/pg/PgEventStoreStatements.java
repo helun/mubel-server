@@ -14,13 +14,6 @@ public class PgEventStoreStatements extends EventStoreStatements {
                 created_at timestamp NOT NULL DEFAULT now()
               );
                         
-            CREATE TABLE %1$s.streams (
-              id SERIAL8 PRIMARY KEY,
-              stream_id UUID UNIQUE NOT NULL,
-              deleted BOOLEAN NOT NULL DEFAULT false,
-              created_at timestamp NOT NULL DEFAULT now()
-            );
-                        
             CREATE TABLE %1$s.event_types (
               id SERIAL2 PRIMARY KEY,
               type TEXT UNIQUE NOT NULL
@@ -28,7 +21,7 @@ public class PgEventStoreStatements extends EventStoreStatements {
                         
             CREATE TABLE %1$s.events (
               id UUID PRIMARY KEY,
-              stream_id BIGINT REFERENCES %1$s.streams ON DELETE RESTRICT NOT NULL,
+              stream_id UUID NOT NULL,
               version INTEGER NOT NULL,
               type_id SMALLINT REFERENCES %1$s.event_types ON DELETE RESTRICT NOT NULL,
               created_at bigint NOT NULL,
@@ -73,7 +66,7 @@ public class PgEventStoreStatements extends EventStoreStatements {
     private static final String GET_SQL_TPL = """
             SELECT
               e.id,
-              s.stream_id,
+              e.stream_id,
               e.version,
               et.type,
               e.created_at,
@@ -82,8 +75,7 @@ public class PgEventStoreStatements extends EventStoreStatements {
               e.meta_data
             FROM %1$s.events e
             JOIN %1$s.event_types et ON e.type_id = et.id
-            JOIN %1$s.streams s ON e.stream_id = s.id
-            WHERE s.stream_id = ?
+            WHERE stream_id = ?
             AND version >= ?
             ORDER BY version
             LIMIT ?
@@ -92,7 +84,7 @@ public class PgEventStoreStatements extends EventStoreStatements {
     private static final String GET_MAX_VERSION_SQL_TPL = """
             SELECT
               e.id,
-              s.stream_id,
+              e.stream_id,
               e.version,
               et.type,
               e.created_at,
@@ -101,8 +93,7 @@ public class PgEventStoreStatements extends EventStoreStatements {
               e.meta_data
             FROM %1$s.events e
             JOIN %1$s.event_types et ON e.type_id = et.id
-            JOIN %1$s.streams s ON e.stream_id = s.id
-            WHERE s.stream_id = ?
+            WHERE stream_id = ?
             AND version BETWEEN ? AND ?
             ORDER BY version
             LIMIT ?
@@ -111,7 +102,7 @@ public class PgEventStoreStatements extends EventStoreStatements {
     private static final String REPLAY_SQL_TPL = """
             SELECT
               e.id,
-              s.stream_id,
+              e.stream_id,
               e.version,
               et.type,
               e.created_at,
@@ -120,7 +111,6 @@ public class PgEventStoreStatements extends EventStoreStatements {
               e.meta_data
             FROM %1$s.events e
             JOIN %1$s.event_types et ON e.type_id = et.id
-            JOIN %1$s.streams s ON e.stream_id = s.id
             WHERE seq_no > ?
             ORDER BY seq_no
             """;
@@ -128,7 +118,7 @@ public class PgEventStoreStatements extends EventStoreStatements {
     private static final String PAGED_REPLAY_SQL_TPL = """
             SELECT
               e.id,
-              s.stream_id,
+              e.stream_id,
               e.version,
               et.type,
               e.created_at,
@@ -137,14 +127,13 @@ public class PgEventStoreStatements extends EventStoreStatements {
               e.meta_data
             FROM %1$s.events e
             JOIN %1$s.event_types et ON e.type_id = et.id
-            JOIN %1$s.streams s ON e.stream_id = s.id
             WHERE seq_no > ?
             ORDER BY seq_no
             LIMIT ?
             """;
 
     private static final String TRUNCATE_SQL_TPL = """
-            TRUNCATE table %1$s.events, %1$s.streams;
+            TRUNCATE table %1$s.events;
             """;
 
     private static final String DROP_SQL = """
