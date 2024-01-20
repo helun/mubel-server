@@ -14,16 +14,11 @@ public class PgEventStoreStatements extends EventStoreStatements {
                 created_at timestamp NOT NULL DEFAULT now()
               );
                         
-            CREATE TABLE %1$s.event_types (
-              id SERIAL2 PRIMARY KEY,
-              type TEXT UNIQUE NOT NULL
-            );
-                        
             CREATE TABLE %1$s.events (
               id UUID PRIMARY KEY,
               stream_id UUID NOT NULL,
               version INTEGER NOT NULL,
-              type_id SMALLINT REFERENCES %1$s.event_types ON DELETE RESTRICT NOT NULL,
+              type TEXT NOT NULL,
               created_at bigint NOT NULL,
               data BYTEA,
               meta_data BYTEA,
@@ -39,7 +34,7 @@ public class PgEventStoreStatements extends EventStoreStatements {
               id,
               stream_id,
               version,
-              type_id,
+              type,
               created_at,
               data,
               meta_data,
@@ -62,71 +57,39 @@ public class PgEventStoreStatements extends EventStoreStatements {
     private static final String SELECT_STREAM_IDS_SQL_TPL = """
             SELECT stream_id, id FROM %s.streams WHERE stream_id IN (<streamIds>)
             """;
-
-    private static final String GET_SQL_TPL = """
+    private static final String SELECT_EVENTS_TPL = """
             SELECT
               e.id,
               e.stream_id,
               e.version,
-              et.type,
+              e.type,
               e.created_at,
               e.seq_no,
               e.data,
               e.meta_data
             FROM %1$s.events e
-            JOIN %1$s.event_types et ON e.type_id = et.id
+            """;
+
+    private static final String GET_SQL_TPL = SELECT_EVENTS_TPL + """
             WHERE stream_id = ?
             AND version >= ?
             ORDER BY version
             LIMIT ?
             """;
 
-    private static final String GET_MAX_VERSION_SQL_TPL = """
-            SELECT
-              e.id,
-              e.stream_id,
-              e.version,
-              et.type,
-              e.created_at,
-              e.seq_no,
-              e.data,
-              e.meta_data
-            FROM %1$s.events e
-            JOIN %1$s.event_types et ON e.type_id = et.id
+    private static final String GET_MAX_VERSION_SQL_TPL = SELECT_EVENTS_TPL + """
             WHERE stream_id = ?
             AND version BETWEEN ? AND ?
             ORDER BY version
             LIMIT ?
             """;
 
-    private static final String REPLAY_SQL_TPL = """
-            SELECT
-              e.id,
-              e.stream_id,
-              e.version,
-              et.type,
-              e.created_at,
-              e.seq_no,
-              e.data,
-              e.meta_data
-            FROM %1$s.events e
-            JOIN %1$s.event_types et ON e.type_id = et.id
+    private static final String REPLAY_SQL_TPL = SELECT_EVENTS_TPL + """
             WHERE seq_no > ?
             ORDER BY seq_no
             """;
 
-    private static final String PAGED_REPLAY_SQL_TPL = """
-            SELECT
-              e.id,
-              e.stream_id,
-              e.version,
-              et.type,
-              e.created_at,
-              e.seq_no,
-              e.data,
-              e.meta_data
-            FROM %1$s.events e
-            JOIN %1$s.event_types et ON e.type_id = et.id
+    private static final String PAGED_REPLAY_SQL_TPL = SELECT_EVENTS_TPL + """
             WHERE seq_no > ?
             ORDER BY seq_no
             LIMIT ?

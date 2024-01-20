@@ -44,7 +44,7 @@ public class JdbcEventStore implements EventStore {
 
     public JdbcEventStore init() {
         globalSequenceNo.init();
-        eventTypes.init();
+        //eventTypes.init();
         return this;
     }
 
@@ -73,7 +73,7 @@ public class JdbcEventStore implements EventStore {
                     batch.bind(0, UUID.fromString(ed.getId()))
                             .bind(1, UUID.fromString(ed.getStreamId()))
                             .bind(2, ed.getVersion())
-                            .bind(3, eventTypes.getEventTypeId(ed.getType()))
+                            .bind(3, ed.getType())
                             .bind(4, millis)
                             .bind(5, ed.getData().toByteArray())
                             .bind(6, ed.getMetaData().toByteArray())
