@@ -8,7 +8,6 @@ import io.mubel.server.spi.EventStore;
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.core.statement.Query;
 
-import javax.sql.DataSource;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,28 +22,23 @@ public class JdbcEventStore implements EventStore {
     private final Jdbi jdbi;
     private final EventStoreStatements statements;
     private final RequestLog requestLog;
-    private final Streams streams;
-    private final EventTypes eventTypes;
     private final Clock clock = Clock.systemUTC();
     private final ErrorMapper errorMapper;
 
     public JdbcEventStore(
-            DataSource dataSource,
+            Jdbi jdbi,
             EventStoreStatements statements,
             ErrorMapper errorMapper
     ) {
         this.statements = statements;
         this.errorMapper = errorMapper;
-        this.jdbi = Jdbi.create(dataSource);
+        this.jdbi = jdbi;
         this.globalSequenceNo = new SequenceNumber(this.jdbi, statements);
         this.requestLog = new RequestLog(this.jdbi, statements);
-        this.streams = new Streams(this.jdbi, statements);
-        this.eventTypes = new EventTypes(this.jdbi, statements);
     }
 
     public JdbcEventStore init() {
         globalSequenceNo.init();
-        //eventTypes.init();
         return this;
     }
 
@@ -62,7 +56,6 @@ public class JdbcEventStore implements EventStore {
             if (isNotBlank(request.getRequestId()) && !requestLog.log(UUID.fromString(request.getRequestId()))) {
                 return List.of();
             }
-            //final var streamIds = streams.lookupIds(request);
             final var result = new ArrayList<EventData>(request.getEventCount());
             final var edb = EventData.newBuilder();
             jdbi.useHandle(h -> {
