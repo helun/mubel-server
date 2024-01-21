@@ -132,4 +132,9 @@ public class PgEventStoreStatements extends EventStoreStatements {
     public static boolean isVersionConflictError(String violatedConstraint) {
         return Objects.requireNonNull(violatedConstraint).contains("events_sid_ver");
     }
+
+    @Override
+    public String replaySql() {
+        return REPLAY_SQL_TPL.formatted(eventStoreName());
+    }
 }

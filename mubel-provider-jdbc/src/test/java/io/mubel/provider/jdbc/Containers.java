@@ -1,6 +1,7 @@
 package io.mubel.provider.jdbc;
 
-import org.postgresql.ds.PGSimpleDataSource;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -29,13 +30,13 @@ public final class Containers {
     }
 
     public static DataSource dataSource(PostgreSQLContainer container) {
-        PGSimpleDataSource ds = new PGSimpleDataSource();
-        ds.setServerNames(new String[]{container.getHost()});
-        ds.setPortNumbers(new int[]{container.getMappedPort(5432)});
-        ds.setDatabaseName("events");
-        ds.setUser(USER);
-        ds.setPassword(USER);
-        return ds;
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl(container.getJdbcUrl());
+        config.setUsername(container.getUsername());
+        config.setPassword(container.getPassword());
+        config.setDriverClassName(container.getDriverClassName());
+        config.setMaximumPoolSize(10);
+        return new HikariDataSource(config);
     }
 
 }
