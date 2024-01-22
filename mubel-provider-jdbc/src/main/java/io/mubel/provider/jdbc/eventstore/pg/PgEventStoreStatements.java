@@ -26,8 +26,23 @@ public class PgEventStoreStatements extends EventStoreStatements {
             );
                         
             CREATE UNIQUE INDEX events_sid_ver ON %1$s.events(stream_id, version);
-            CREATE UNIQUE INDEX events_seq_no ON %1$s.events(seq_no);
-              """;
+                        
+            CREATE TABLE %1$s.all_events_subscription (
+                seq_id SERIAL8 PRIMARY KEY,
+                event_id UUID NOT NULL
+            );
+                        
+            CREATE OR REPLACE FUNCTION %1$s_insert_event_seq() RETURNS TRIGGER AS $$
+            BEGIN
+                INSERT INTO %1$s.all_events_subscription(event_id) VALUES (NEW.id);
+                RETURN NEW;
+            END;
+            $$ LANGUAGE plpgsql;
+                       
+            CREATE TRIGGER trigger_after_insert_event
+            AFTER INSERT ON %1$s.events
+            FOR EACH ROW EXECUTE FUNCTION %1$s_insert_event_seq();
+            """;
 
     private static final String APPEND_SQL_TPL = """
             INSERT INTO %s.events(
@@ -37,8 +52,8 @@ public class PgEventStoreStatements extends EventStoreStatements {
               type,
               created_at,
               data,
-              meta_data,
-              seq_no) VALUES (?,?,?,?,?,?,?,?)
+              meta_data
+              ) VALUES (?,?,?,?,?,?,?)
             """;
 
     private static final String INSERT_EVENT_TYPE_SQL_TPL = """
@@ -64,13 +79,13 @@ public class PgEventStoreStatements extends EventStoreStatements {
               e.version,
               e.type,
               e.created_at,
-              e.seq_no,
               e.data,
               e.meta_data
-            FROM %1$s.events e
             """;
 
     private static final String GET_SQL_TPL = SELECT_EVENTS_TPL + """
+            ,0 AS seq_id
+            FROM %1$s.events e
             WHERE stream_id = ?
             AND version >= ?
             ORDER BY version
@@ -78,6 +93,8 @@ public class PgEventStoreStatements extends EventStoreStatements {
             """;
 
     private static final String GET_MAX_VERSION_SQL_TPL = SELECT_EVENTS_TPL + """
+            ,0 AS seq_id
+            FROM %1$s.events e
             WHERE stream_id = ?
             AND version BETWEEN ? AND ?
             ORDER BY version
@@ -85,18 +102,24 @@ public class PgEventStoreStatements extends EventStoreStatements {
             """;
 
     private static final String REPLAY_SQL_TPL = SELECT_EVENTS_TPL + """
-            WHERE seq_no > ?
-            ORDER BY seq_no
+            ,s.seq_id
+            FROM %1$s.events e
+            JOIN %1$s.all_events_subscription s ON s.event_id = e.id
+            WHERE s.seq_id > ?
+            ORDER BY s.seq_id
             """;
 
     private static final String PAGED_REPLAY_SQL_TPL = SELECT_EVENTS_TPL + """
-            WHERE seq_no > ?
-            ORDER BY seq_no
+            ,s.seq_id
+            FROM %1$s.events e
+            JOIN %1$s.all_events_subscription s ON s.event_id = e.id
+            WHERE s.seq_id > ?
+            ORDER BY s.seq_id
             LIMIT ?
             """;
 
     private static final String TRUNCATE_SQL_TPL = """
-            TRUNCATE table %1$s.events;
+            TRUNCATE table %1$s.events, %1$s.all_events_subscription RESTART IDENTITY CASCADE;
             """;
 
     private static final String DROP_SQL = """

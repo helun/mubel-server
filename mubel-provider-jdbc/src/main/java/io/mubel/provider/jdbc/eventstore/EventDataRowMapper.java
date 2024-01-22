@@ -15,7 +15,7 @@ public class EventDataRowMapper implements RowMapper<EventData> {
 
     @Override
     public EventData map(ResultSet rs, StatementContext ctx) throws SQLException {
-        var metaDataBytes = rs.getBytes(8);
+        var metaDataBytes = rs.getBytes(7);
         MetaData metaData = null;
         if (!rs.wasNull()) {
             try {
@@ -30,9 +30,9 @@ public class EventDataRowMapper implements RowMapper<EventData> {
                 .setVersion(rs.getInt(3))
                 .setType(rs.getString(4))
                 .setCreatedAt(rs.getLong(5))
-                .setSequenceNo(rs.getLong(6))
-                .setData(ByteString.copyFrom(rs.getBytes(7)))
+                .setData(ByteString.copyFrom(rs.getBytes(6)))
                 .setMetaData(metaData)
+                .setSequenceNo(rs.getLong(8))
                 .build();
     }
 }

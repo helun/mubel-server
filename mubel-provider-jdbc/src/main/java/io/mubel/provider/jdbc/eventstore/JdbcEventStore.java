@@ -18,7 +18,6 @@ import static io.mubel.schema.Constrains.requireNotBlank;
 
 public class JdbcEventStore implements EventStore {
 
-    private final SequenceNumber globalSequenceNo;
     private final Jdbi jdbi;
     private final EventStoreStatements statements;
     private final RequestLog requestLog;
@@ -33,12 +32,10 @@ public class JdbcEventStore implements EventStore {
         this.statements = statements;
         this.errorMapper = errorMapper;
         this.jdbi = jdbi;
-        this.globalSequenceNo = new SequenceNumber(this.jdbi, statements);
         this.requestLog = new RequestLog(this.jdbi, statements);
     }
 
     public JdbcEventStore init() {
-        globalSequenceNo.init();
         return this;
     }
 
@@ -62,7 +59,6 @@ public class JdbcEventStore implements EventStore {
                 final var batch = h.prepareBatch(statements.append());
                 for (var ed : request.getEventList()) {
                     final var millis = clock.millis();
-                    final var seqNo = globalSequenceNo.next();
                     batch.bind(0, UUID.fromString(ed.getId()))
                             .bind(1, UUID.fromString(ed.getStreamId()))
                             .bind(2, ed.getVersion())
@@ -70,7 +66,6 @@ public class JdbcEventStore implements EventStore {
                             .bind(4, millis)
                             .bind(5, ed.getData().toByteArray())
                             .bind(6, ed.getMetaData().toByteArray())
-                            .bind(7, seqNo)
                             .add();
                     result.add(edb
                             .setId(ed.getId())
@@ -80,7 +75,6 @@ public class JdbcEventStore implements EventStore {
                             .setCreatedAt(millis)
                             .setData(ed.getData())
                             .setMetaData(ed.getMetaData())
-                            .setSequenceNo(seqNo)
                             .build()
                     );
                 }
