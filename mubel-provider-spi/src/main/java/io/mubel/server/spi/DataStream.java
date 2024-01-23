@@ -50,4 +50,11 @@ public class DataStream<E> {
     public boolean isDone() {
         return completed.get();
     }
+
+    public boolean offer(E data) {
+        if (completed.get()) {
+            return false;
+        }
+        return buffer.offer(data);
+    }
 }

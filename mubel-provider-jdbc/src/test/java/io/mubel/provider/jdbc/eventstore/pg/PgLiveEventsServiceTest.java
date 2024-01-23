@@ -1,13 +1,13 @@
-package io.mubel.provider.jdbc.eventstore;
+package io.mubel.provider.jdbc.eventstore.pg;
 
 import io.mubel.provider.jdbc.Containers;
-import io.mubel.provider.jdbc.eventstore.pg.PgErrorMapper;
-import io.mubel.provider.jdbc.eventstore.pg.PgEventStoreStatements;
-import io.mubel.provider.test.ReplayServiceTestBase;
+import io.mubel.provider.jdbc.eventstore.JdbcEventStore;
+import io.mubel.provider.jdbc.eventstore.JdbcEventStoreProvisioner;
+import io.mubel.provider.test.LiveEventsServiceTestBase;
 import io.mubel.server.spi.EventStore;
-import io.mubel.server.spi.ReplayService;
+import io.mubel.server.spi.LiveEventsService;
 import org.jdbi.v3.core.Jdbi;
-import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -16,18 +16,18 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.util.concurrent.Executors;
 
 @Testcontainers
-public class PgReplayServiceTest extends ReplayServiceTestBase {
+class PgLiveEventsServiceTest extends LiveEventsServiceTestBase {
 
     @Container
     static PostgreSQLContainer container = Containers.postgreSQLContainer();
 
     static EventStore eventStore;
 
-    static ReplayService replayService;
+    static LiveEventsService service;
 
     @BeforeAll
     static void setup() {
-        
+
         var dataSource = Containers.dataSource(container);
         String eventStoreName = "test_es";
         JdbcEventStoreProvisioner.provision(dataSource, new PgEventStoreStatements(eventStoreName));
@@ -37,20 +37,22 @@ public class PgReplayServiceTest extends ReplayServiceTestBase {
                 new PgEventStoreStatements(eventStoreName),
                 new PgErrorMapper()
         ).init();
-        replayService = new JdbcReplayService(jdbi,
-                new PgEventStoreStatements(eventStoreName),
+        service = new PgLiveEventsService(
+                dataSource,
+                PgEventStoreStatements.liveChannelName(eventStoreName),
+                (JdbcEventStore) eventStore,
                 Executors.newVirtualThreadPerTaskExecutor()
         );
     }
 
-    @AfterEach
-    void tearDown() {
-        eventStore.truncate();
+    @AfterAll
+    static void tearDown() {
+        ((PgLiveEventsService) service).stop();
     }
 
     @Override
     protected String esid() {
-        return "some-esid";
+        return "some_esid";
     }
 
     @Override
@@ -59,7 +61,7 @@ public class PgReplayServiceTest extends ReplayServiceTestBase {
     }
 
     @Override
-    protected ReplayService service() {
-        return replayService;
+    protected LiveEventsService service() {
+        return service;
     }
 }

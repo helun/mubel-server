@@ -82,9 +82,7 @@ public abstract class EventStoreStatements {
         return dropSql;
     }
 
-    public String getSequenceNoSql() {
-        return "SELECT COALESCE(max(seq_no), 0) AS seq_no FROM %s.events".formatted(eventStoreName);
-    }
+    public abstract String getSequenceNoSql();
 
     public abstract String replaySql();
 

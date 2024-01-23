@@ -96,6 +96,10 @@ public class JdbcEventStore implements EventStore {
         jdbi.useHandle(h -> h.createUpdate(statements.truncate()).execute());
     }
 
+    public long maxSequenceNo() {
+        return jdbi.withHandle(h -> h.createQuery(statements.getSequenceNoSql()).mapTo(Long.class).one());
+    }
+
     private GetEventsResponse getByStream(GetEventsRequest request) {
         final var nnStreamId = requireNotBlank(request.getStreamId(), "streamId may not be null");
         final int sizeLimit = statements.parseSizeLimit(request.getSize());

@@ -38,10 +38,23 @@ public class PgEventStoreStatements extends EventStoreStatements {
                 RETURN NEW;
             END;
             $$ LANGUAGE plpgsql;
-                       
-            CREATE TRIGGER trigger_after_insert_event
+                        
+            CREATE OR REPLACE FUNCTION %1$s_notify_live() RETURNS TRIGGER AS $$
+            DECLARE
+                payload TEXT;
+            BEGIN
+                PERFORM pg_notify('%1$s_live', 'a');
+                RETURN NEW;
+            END;
+            $$ LANGUAGE plpgsql;
+                        
+            CREATE TRIGGER %1$s_trigger_after_insert_event
             AFTER INSERT ON %1$s.events
             FOR EACH ROW EXECUTE FUNCTION %1$s_insert_event_seq();
+                        
+            CREATE TRIGGER %1$s_trigger_after_insert_all_sub
+            AFTER INSERT ON %1$s.all_events_subscription
+            FOR EACH ROW EXECUTE FUNCTION %1$s_notify_live();
             """;
 
     private static final String APPEND_SQL_TPL = """
@@ -147,6 +160,10 @@ public class PgEventStoreStatements extends EventStoreStatements {
         );
     }
 
+    public static String liveChannelName(String eventStoreName) {
+        return eventStoreName + "_live";
+    }
+
     @Override
     public String truncate() {
         return TRUNCATE_SQL_TPL.formatted(eventStoreName());
@@ -159,5 +176,10 @@ public class PgEventStoreStatements extends EventStoreStatements {
     @Override
     public String replaySql() {
         return REPLAY_SQL_TPL.formatted(eventStoreName());
+    }
+
+    @Override
+    public String getSequenceNoSql() {
+        return "SELECT COALESCE(max(seq_id), 0) AS seq_id FROM %s.all_events_subscription".formatted(eventStoreName());
     }
 }

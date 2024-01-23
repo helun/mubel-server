@@ -1,8 +1,8 @@
-package io.mubel.provider.jdbc.eventstore;
+package io.mubel.provider.jdbc.eventstore.pg;
 
 import io.mubel.provider.jdbc.Containers;
-import io.mubel.provider.jdbc.eventstore.pg.PgErrorMapper;
-import io.mubel.provider.jdbc.eventstore.pg.PgEventStoreStatements;
+import io.mubel.provider.jdbc.eventstore.JdbcEventStore;
+import io.mubel.provider.jdbc.eventstore.JdbcEventStoreProvisioner;
 import io.mubel.provider.test.EventStoreTestBase;
 import org.jdbi.v3.core.Jdbi;
 import org.junit.jupiter.api.AfterEach;
