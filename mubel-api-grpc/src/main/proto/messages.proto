@@ -86,9 +86,15 @@ enum DataFormat {
 }
 
 message ProvisionEventStoreRequest {
+  // The name of the event store to provision.
   string esid = 1;
+  // The payload type of the events to store
   DataFormat dataFormat = 2;
-  bool waitForOpen = 3; // if true, the call will block until the event store is open
+  // if true, the call will block until the event store is open
+  // if false, the call will return immediately and the event store will be opened in the background
+  bool waitForOpen = 3;
+  // The name of the storage backend to use for the event store.
+  string storageBackendName = 4;
 }
 
 message DropEventStoreRequest {

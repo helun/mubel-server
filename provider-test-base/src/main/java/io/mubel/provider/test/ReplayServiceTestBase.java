@@ -4,8 +4,8 @@ import io.mubel.api.grpc.AppendRequest;
 import io.mubel.api.grpc.EventData;
 import io.mubel.api.grpc.GetEventsRequest;
 import io.mubel.api.grpc.SubscribeRequest;
-import io.mubel.server.spi.EventStore;
-import io.mubel.server.spi.ReplayService;
+import io.mubel.server.spi.eventstore.EventStore;
+import io.mubel.server.spi.eventstore.ReplayService;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 

@@ -3,7 +3,7 @@ package io.mubel.provider.jdbc.eventstore;
 import io.mubel.api.grpc.EventData;
 import io.mubel.api.grpc.SubscribeRequest;
 import io.mubel.server.spi.DataStream;
-import io.mubel.server.spi.ReplayService;
+import io.mubel.server.spi.eventstore.ReplayService;
 import org.jdbi.v3.core.Jdbi;
 
 import java.util.concurrent.Executor;

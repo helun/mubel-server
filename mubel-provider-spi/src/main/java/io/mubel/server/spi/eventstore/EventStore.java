@@ -1,4 +1,4 @@
-package io.mubel.server.spi;
+package io.mubel.server.spi.eventstore;
 
 import io.mubel.api.grpc.AppendRequest;
 import io.mubel.api.grpc.EventData;

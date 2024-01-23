@@ -2,8 +2,8 @@ package io.mubel.provider.jdbc.eventstore;
 
 import io.mubel.api.grpc.DropEventStoreRequest;
 import io.mubel.api.grpc.ProvisionEventStoreRequest;
-import io.mubel.server.spi.EventStoreProvisioner;
-import io.mubel.server.spi.SpiEventStoreDetails;
+import io.mubel.server.spi.eventstore.EventStoreProvisioner;
+import io.mubel.server.spi.eventstore.SpiEventStoreDetails;
 import org.jdbi.v3.core.Jdbi;
 
 import javax.sql.DataSource;

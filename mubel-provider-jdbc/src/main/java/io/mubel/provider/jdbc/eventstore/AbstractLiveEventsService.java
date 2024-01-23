@@ -5,7 +5,7 @@ import io.mubel.api.grpc.GetEventsRequest;
 import io.mubel.api.grpc.GetEventsResponse;
 import io.mubel.server.spi.DataDispatcher;
 import io.mubel.server.spi.DataStream;
-import io.mubel.server.spi.LiveEventsService;
+import io.mubel.server.spi.eventstore.LiveEventsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

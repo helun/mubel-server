@@ -1,4 +1,4 @@
-package io.mubel.server.spi;
+package io.mubel.server.spi.eventstore;
 
 public enum EventStoreState {
     PRE_PROVISION,

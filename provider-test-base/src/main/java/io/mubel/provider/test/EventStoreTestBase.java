@@ -4,7 +4,7 @@ import io.mubel.api.grpc.AppendRequest;
 import io.mubel.api.grpc.EventData;
 import io.mubel.api.grpc.GetEventsRequest;
 import io.mubel.api.grpc.GetEventsResponse;
-import io.mubel.server.spi.EventStore;
+import io.mubel.server.spi.eventstore.EventStore;
 import io.mubel.server.spi.exceptions.EventVersionConflictException;
 import org.junit.jupiter.api.Test;
 
