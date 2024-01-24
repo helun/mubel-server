@@ -2,10 +2,10 @@ package io.mubel.server.spi.eventstore;
 
 import io.mubel.api.grpc.EventData;
 import io.mubel.api.grpc.SubscribeRequest;
-import io.mubel.server.spi.DataStream;
+import reactor.core.publisher.Flux;
 
 public interface ReplayService {
 
-    DataStream<EventData> replay(SubscribeRequest request);
+    Flux<EventData> replay(SubscribeRequest request);
 
 }

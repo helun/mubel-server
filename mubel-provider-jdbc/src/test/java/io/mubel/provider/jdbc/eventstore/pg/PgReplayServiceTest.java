@@ -13,6 +13,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.concurrent.Executors;
 
@@ -40,7 +41,7 @@ public class PgReplayServiceTest extends ReplayServiceTestBase {
         ).init();
         replayService = new JdbcReplayService(jdbi,
                 new PgEventStoreStatements(eventStoreName),
-                Executors.newVirtualThreadPerTaskExecutor()
+                Schedulers.fromExecutorService(Executors.newVirtualThreadPerTaskExecutor())
         );
     }
 

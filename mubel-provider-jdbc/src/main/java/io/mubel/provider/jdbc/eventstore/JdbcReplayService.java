@@ -2,51 +2,61 @@ package io.mubel.provider.jdbc.eventstore;
 
 import io.mubel.api.grpc.EventData;
 import io.mubel.api.grpc.SubscribeRequest;
-import io.mubel.server.spi.DataStream;
 import io.mubel.server.spi.eventstore.ReplayService;
 import org.jdbi.v3.core.Jdbi;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
+import reactor.core.scheduler.Scheduler;
 
-import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class JdbcReplayService implements ReplayService {
 
-    private static final int BATCH_SIZE = 512;
+    private static final int BATCH_SIZE = 256;
     private final Jdbi jdbi;
-    private final Executor executor;
     private final EventStoreStatements statements;
+    private final Scheduler scheduler;
 
-    public JdbcReplayService(Jdbi jdbi, EventStoreStatements statements, Executor executor) {
+    public JdbcReplayService(
+            Jdbi jdbi,
+            EventStoreStatements statements,
+            Scheduler scheduler
+    ) {
         this.jdbi = jdbi;
-        this.executor = executor;
         this.statements = statements;
+        this.scheduler = scheduler;
     }
 
     @Override
-    public DataStream<EventData> replay(SubscribeRequest request) {
-        final var stream = new DataStream<>(BATCH_SIZE, EventData.newBuilder().build());
-        executor.execute(() -> replayInternal(request, stream));
-        return stream;
+    public Flux<EventData> replay(SubscribeRequest request) {
+        return Flux.<EventData>push(sink -> replayInternal(request, sink))
+                .publishOn(scheduler);
     }
 
-    private void replayInternal(SubscribeRequest request, DataStream<EventData> stream) {
-        jdbi.useHandle(handle -> {
+    private void replayInternal(SubscribeRequest request, FluxSink<EventData> sink) {
+        AtomicBoolean isCancelled = new AtomicBoolean(false);
+        AtomicLong lastSequenceNo = new AtomicLong(request.getFromSequenceNo());
+        sink.onCancel(() -> isCancelled.set(true));
+        sink.onRequest(n -> jdbi.useHandle(handle -> {
             try {
-                handle.createQuery(statements.replaySql())
-                        .bind(0, request.getFromSequenceNo())
+                var limit = Math.min(n, BATCH_SIZE);
+                handle.createQuery(statements.pagedReplaySql())
+                        .bind(0, lastSequenceNo.get())
+                        .bind(1, n)
                         .map(new EventDataRowMapper())
                         .useIterator(iter -> {
-                            while (iter.hasNext()) {
-                                var eventData = iter.next();
-                                stream.put(eventData);
+                            while (iter.hasNext() && !isCancelled.get()) {
+                                var ed = iter.next();
+                                lastSequenceNo.set(ed.getSequenceNo());
+                                sink.next(ed);
                             }
-                            stream.end();
+                            sink.complete();
                         });
             } catch (RuntimeException e) {
-                stream.fail(e);
-            } catch (InterruptedException e) {
-                stream.end();
-                Thread.currentThread().interrupt();
+                sink.error(e);
             }
-        });
+        }));
+
     }
 }

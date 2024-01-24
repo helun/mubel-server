@@ -1,42 +1,37 @@
 package io.mubel.provider.test;
 
 import io.mubel.server.spi.DataStream;
+import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executors;
 
 import static org.awaitility.Awaitility.await;
 
 public class TestSubscriber<E> {
 
-
-    private final DataStream<E> dataStream;
+    private final Flux<E> dataStream;
     private final List<E> values = new ArrayList<>();
     private Throwable error;
 
-    public TestSubscriber(DataStream<E> dataStream) {
+    private volatile boolean done = false;
+
+    public TestSubscriber(DataStream<E> ds) {
+        dataStream = Flux.empty();
+    }
+
+    public TestSubscriber(Flux<E> dataStream) {
         this.dataStream = dataStream;
-        Executors.newSingleThreadExecutor().execute(() -> {
-            try {
-                while (true) {
-                    final var next = dataStream.next();
-                    if (next == null) {
-                        return;
-                    }
-                    values.add(next);
-                }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            } catch (Exception e) {
-                error = e;
-            }
-        });
+        dataStream.subscribe(
+                values::add,
+                err -> error = err,
+                () -> done = true
+        );
     }
 
     public TestSubscriber<E> awaitDone() {
         await().untilAsserted(() -> {
-            if (dataStream.isDone()) {
+            if (done) {
                 return;
             }
             throw new AssertionError("DataStream is not done");
@@ -45,7 +40,7 @@ public class TestSubscriber<E> {
     }
 
     public TestSubscriber<E> assertComplete() {
-        if (!dataStream.isDone()) {
+        if (!done) {
             throw new AssertionError("DataStream is not done");
         }
         return this;
