@@ -1,10 +1,10 @@
 package io.mubel.server.spi.eventstore;
 
 import io.mubel.api.grpc.EventData;
-import io.mubel.server.spi.DataStream;
+import reactor.core.publisher.Flux;
 
 public interface LiveEventsService {
 
-    DataStream<EventData> liveEvents();
+    Flux<EventData> liveEvents();
 
 }

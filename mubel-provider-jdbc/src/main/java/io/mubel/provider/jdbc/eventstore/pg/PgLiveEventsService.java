@@ -1,13 +1,15 @@
 package io.mubel.provider.jdbc.eventstore.pg;
 
+import io.mubel.api.grpc.EventData;
 import io.mubel.provider.jdbc.eventstore.AbstractLiveEventsService;
 import io.mubel.provider.jdbc.eventstore.JdbcEventStore;
 import org.postgresql.jdbc.PgConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.FluxSink;
+import reactor.core.scheduler.Scheduler;
 
 import javax.sql.DataSource;
-import java.util.concurrent.Executor;
 
 public class PgLiveEventsService extends AbstractLiveEventsService {
 
@@ -21,14 +23,14 @@ public class PgLiveEventsService extends AbstractLiveEventsService {
             DataSource dataSource,
             String channelName,
             JdbcEventStore eventStore,
-            Executor executor
+            Scheduler scheduler
     ) {
-        super(eventStore, executor);
+        super(eventStore, scheduler);
         this.dataSource = dataSource;
         this.channelName = channelName;
     }
 
-    protected void run() throws Exception {
+    protected void run(FluxSink<EventData> emitter) throws Exception {
         try (var connection = dataSource.getConnection()) {
             this.connection = connection;
             this.pgConnection = connection.unwrap(PgConnection.class);
@@ -39,7 +41,7 @@ public class PgLiveEventsService extends AbstractLiveEventsService {
                     var notifications = pgConnection.getNotifications(2000);
                     if (notifications != null && notifications.length > 0) {
                         LOG.debug("Received notification: {}", notifications);
-                        dispatchNewEvents();
+                        dispatchNewEvents(emitter);
                     }
                 }
             }
@@ -52,11 +54,6 @@ public class PgLiveEventsService extends AbstractLiveEventsService {
             if (connection != null && !connection.isClosed()) {
                 connection.close();
             }
-            /*
-            if (pgConnection != null && !pgConnection.isClosed()) {
-                pgConnection.abort(executor);
-            }
-             */
         } catch (Exception e) {
             LOG.error("Error while closing connection", e);
         }

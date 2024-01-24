@@ -12,6 +12,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.concurrent.Executors;
 
@@ -41,7 +42,7 @@ class PgLiveEventsServiceTest extends LiveEventsServiceTestBase {
                 dataSource,
                 PgEventStoreStatements.liveChannelName(eventStoreName),
                 (JdbcEventStore) eventStore,
-                Executors.newVirtualThreadPerTaskExecutor()
+                Schedulers.fromExecutor(Executors.newVirtualThreadPerTaskExecutor())
         );
     }
 

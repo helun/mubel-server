@@ -1,6 +1,5 @@
 package io.mubel.provider.test;
 
-import io.mubel.server.spi.DataStream;
 import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
@@ -10,18 +9,12 @@ import static org.awaitility.Awaitility.await;
 
 public class TestSubscriber<E> {
 
-    private final Flux<E> dataStream;
     private final List<E> values = new ArrayList<>();
     private Throwable error;
 
     private volatile boolean done = false;
 
-    public TestSubscriber(DataStream<E> ds) {
-        dataStream = Flux.empty();
-    }
-
     public TestSubscriber(Flux<E> dataStream) {
-        this.dataStream = dataStream;
         dataStream.subscribe(
                 values::add,
                 err -> error = err,

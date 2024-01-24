@@ -3,106 +3,74 @@ package io.mubel.provider.jdbc.eventstore;
 import io.mubel.api.grpc.EventData;
 import io.mubel.api.grpc.GetEventsRequest;
 import io.mubel.api.grpc.GetEventsResponse;
-import io.mubel.server.spi.DataDispatcher;
-import io.mubel.server.spi.DataStream;
 import io.mubel.server.spi.eventstore.LiveEventsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
+import reactor.core.scheduler.Scheduler;
 
-import java.util.List;
-import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class AbstractLiveEventsService implements LiveEventsService {
 
     private static final Logger LOG = LoggerFactory.getLogger(AbstractLiveEventsService.class);
-    private final DataDispatcher<EventData> dispatcher = DataDispatcher.<EventData>builder()
-            .withBufferSize(512)
-            .withEndMessage(EventData.newBuilder().build())
-            .build();
+    private Flux<EventData> liveEvents;
 
     private final AtomicBoolean shouldRun = new AtomicBoolean(true);
-    private final AtomicBoolean running = new AtomicBoolean(false);
+    private final Scheduler scheduler;
 
     protected long lastSequenceNo = -1;
 
     private GetEventsRequest.Builder requestBuilder = GetEventsRequest.newBuilder()
             .setSize(256);
 
-    private final List<Long> backoffSchedule = List.of(
-            1000L,
-            2000L,
-            5000L,
-            10000L,
-            30000L,
-            60000L
-    );
-
-    private AtomicInteger errorCount = new AtomicInteger(0);
-
     private final JdbcEventStore eventStore;
-    protected final Executor executor;
 
-    public AbstractLiveEventsService(JdbcEventStore eventStore,
-                                     Executor executor) {
+    public AbstractLiveEventsService(JdbcEventStore eventStore, Scheduler scheduler) {
         this.eventStore = eventStore;
-        this.executor = executor;
+        this.scheduler = scheduler;
     }
 
-    public DataStream<EventData> liveEvents() {
-        start();
-        return dispatcher.newConsumer();
-    }
-
-    public void start() {
-        if (running.compareAndSet(false, true)) {
-            executor.execute(() -> {
-                LOG.info("Starting live events service");
-                while (shouldRun()) {
-                    try {
-                        initLastSequenceNo();
-                        run();
-                    } catch (Exception e) {
-                        LOG.error("Error in live events service", e);
-                        backoff();
-                    }
+    public Flux<EventData> liveEvents() {
+        if (liveEvents == null) {
+            synchronized (this) {
+                if (liveEvents == null) {
+                    this.liveEvents = initLiveEvents();
                 }
-            });
+            }
         }
-
+        return liveEvents.share()
+                .onBackpressureError();
     }
 
-    private void backoff() {
-        if (!shouldRun()) {
-            return;
-        }
-        try {
-            var backoff = backoffSchedule.get(Math.min(errorCount.get(), backoffSchedule.size() - 1));
-            LOG.info("Backing off for {}ms", backoff);
-            Thread.sleep(backoff);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+    private Flux<EventData> initLiveEvents() {
+        return Flux.<EventData>push(emitter -> {
+                    initLastSequenceNo();
+                    while (shouldRun()) {
+                        try {
+                            run(emitter);
+                        } catch (Exception e) {
+                            LOG.error("Error in live events service", e);
+                            emitter.error(e);
+                        }
+                    }
+                }).subscribeOn(scheduler)
+                .doFinally(signal -> stop());
     }
 
-    protected abstract void run() throws Exception;
+    protected abstract void run(FluxSink<EventData> emitter) throws Exception;
 
-    private void resetErrorCounter() {
-        errorCount.set(0);
-    }
-
-    protected void dispatchNewEvents() throws InterruptedException {
+    protected void dispatchNewEvents(FluxSink<EventData> emitter) {
         GetEventsResponse response;
         do {
             LOG.debug("Fetching events from {}", lastSequenceNo);
             response = eventStore.get(requestBuilder.setFromSequenceNo(lastSequenceNo).build());
             LOG.debug("Dispatching {} events", response.getEventCount());
             for (var event : response.getEventList()) {
-                dispatcher.dispatch(event);
+                emitter.next(event);
                 lastSequenceNo = event.getSequenceNo();
             }
-            resetErrorCounter();
         } while (response.getEventCount() > 0);
     }
 
@@ -113,7 +81,6 @@ public abstract class AbstractLiveEventsService implements LiveEventsService {
     public void stop() {
         LOG.info("Stopping live events service");
         shouldRun.set(false);
-        dispatcher.end();
         onStop();
     }
 

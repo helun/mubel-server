@@ -31,7 +31,7 @@ public class JdbcReplayService implements ReplayService {
     @Override
     public Flux<EventData> replay(SubscribeRequest request) {
         return Flux.<EventData>push(sink -> replayInternal(request, sink))
-                .publishOn(scheduler);
+                .subscribeOn(scheduler);
     }
 
     private void replayInternal(SubscribeRequest request, FluxSink<EventData> sink) {
