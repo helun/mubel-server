@@ -1,9 +1,7 @@
 package io.mubel.server.mubelserver.eventstore;
 
-import io.mubel.api.grpc.DropEventStoreRequest;
-import io.mubel.api.grpc.DropEventStoreResponse;
-import io.mubel.api.grpc.EventStoreDetails;
-import io.mubel.api.grpc.ProvisionEventStoreRequest;
+import io.mubel.api.grpc.*;
+import io.mubel.server.spi.EventStoreContext;
 import io.mubel.server.spi.Provider;
 import io.mubel.server.spi.eventstore.EventStore;
 import io.mubel.server.spi.eventstore.SpiEventStoreDetails;
@@ -16,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 import java.util.Map;
@@ -26,7 +25,7 @@ public class EventStoreManager implements ApplicationListener<MubelEventEnvelope
 
     private static final Logger LOG = LoggerFactory.getLogger(EventStoreManager.class);
     private final EventStoreAliasRepository aliases;
-    private final Map<String, EventStore> eventStores = new ConcurrentHashMap<>();
+    private final Map<String, EventStoreContext> eventStores = new ConcurrentHashMap<>();
 
     private final List<Provider> providers;
 
@@ -34,7 +33,8 @@ public class EventStoreManager implements ApplicationListener<MubelEventEnvelope
 
 
     public EventStoreManager(EventStoreAliasRepository aliases,
-                             List<Provider> providers, EventStoreDetailsRepository detailsRepository
+                             List<Provider> providers,
+                             EventStoreDetailsRepository detailsRepository
     ) {
         this.aliases = aliases;
         this.providers = providers;
@@ -63,12 +63,16 @@ public class EventStoreManager implements ApplicationListener<MubelEventEnvelope
     }
 
     public EventStore resolveEventStore(String esidOrAlias) {
+        return getEventStoreContext(esidOrAlias).eventStore();
+    }
+
+    private EventStoreContext getEventStoreContext(String esidOrAlias) {
         final var esid = aliases.getEventStoreId(esidOrAlias);
-        final var es = eventStores.get(esid);
-        if (es == null) {
+        final var context = eventStores.get(esid);
+        if (context == null) {
             throw new ResourceNotFoundException("No event store found for esid: " + esid);
         }
-        return es;
+        return context;
     }
 
     public void onApplicationEvent(MubelEventEnvelope envelope) {
@@ -84,7 +88,7 @@ public class EventStoreManager implements ApplicationListener<MubelEventEnvelope
     }
 
     private void handleOpened(MubelEvents.EventStoreOpened eventStoreOpened) {
-        eventStores.put(eventStoreOpened.esid(), eventStoreOpened.eventStore());
+        eventStores.put(eventStoreOpened.esid(), eventStoreOpened.context());
         LOG.info("Event store opened: {}", eventStoreOpened.esid());
     }
 
@@ -112,5 +116,9 @@ public class EventStoreManager implements ApplicationListener<MubelEventEnvelope
                 .filter(provider -> provider.name().equals(providerName))
                 .findFirst()
                 .orElseThrow(() -> new ResourceNotFoundException("No provider found for name: " + providerName));
+    }
+
+    public Flux<EventData> subscribe(SubscribeRequest request) {
+        return EventDataSubscription.setupSubscription(request, getEventStoreContext(request.getEsid()));
     }
 }
