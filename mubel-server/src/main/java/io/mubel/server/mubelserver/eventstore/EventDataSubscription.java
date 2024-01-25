@@ -42,13 +42,7 @@ public final class EventDataSubscription {
     }
 
     private static Predicate<Throwable> shouldResume() {
-        return err -> {
-            if (err instanceof SequenceNoOutOfSyncException) {
-                return true;
-            } else {
-                return false;
-            }
-        };
+        return err -> err instanceof SequenceNoOutOfSyncException;
     }
 
     private static BiConsumer<EventData, SynchronousSink<EventData>> checkSequence(SubscribeRequest request, AtomicLong lastSequenceNo) {
