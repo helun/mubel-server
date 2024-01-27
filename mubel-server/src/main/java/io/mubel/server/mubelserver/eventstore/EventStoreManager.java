@@ -1,13 +1,16 @@
 package io.mubel.server.mubelserver.eventstore;
 
-import io.mubel.api.grpc.*;
+import io.mubel.api.grpc.EventData;
+import io.mubel.api.grpc.EventStoreDetails;
+import io.mubel.api.grpc.SubscribeRequest;
+import io.mubel.server.mubelserver.Providers;
 import io.mubel.server.spi.EventStoreContext;
 import io.mubel.server.spi.Provider;
 import io.mubel.server.spi.eventstore.EventStore;
-import io.mubel.server.spi.eventstore.SpiEventStoreDetails;
 import io.mubel.server.spi.exceptions.ResourceNotFoundException;
-import io.mubel.server.spi.messages.MubelEventEnvelope;
-import io.mubel.server.spi.messages.MubelEvents;
+import io.mubel.server.spi.messages.EventStoreEventEnvelope;
+import io.mubel.server.spi.messages.EventStoreEvents;
+import io.mubel.server.spi.model.SpiEventStoreDetails;
 import io.mubel.server.spi.systemdb.EventStoreAliasRepository;
 import io.mubel.server.spi.systemdb.EventStoreDetailsRepository;
 import org.slf4j.Logger;
@@ -21,45 +24,24 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
-public class EventStoreManager implements ApplicationListener<MubelEventEnvelope> {
+public class EventStoreManager implements ApplicationListener<EventStoreEventEnvelope> {
 
     private static final Logger LOG = LoggerFactory.getLogger(EventStoreManager.class);
     private final EventStoreAliasRepository aliases;
     private final Map<String, EventStoreContext> eventStores = new ConcurrentHashMap<>();
 
-    private final List<Provider> providers;
+    private final Providers providers;
 
     private final EventStoreDetailsRepository detailsRepository;
 
 
     public EventStoreManager(EventStoreAliasRepository aliases,
-                             List<Provider> providers,
+                             Providers providers,
                              EventStoreDetailsRepository detailsRepository
     ) {
         this.aliases = aliases;
         this.providers = providers;
         this.detailsRepository = detailsRepository;
-    }
-
-    public SpiEventStoreDetails provision(ProvisionEventStoreRequest request) {
-        return providers.stream()
-                .filter(provider -> hasBackend(provider, request.getStorageBackendName()))
-                .findFirst()
-                .orElseThrow(() -> new ResourceNotFoundException("No provider for backend name: " + request.getStorageBackendName()))
-                .provision(request);
-    }
-
-    public DropEventStoreResponse drop(DropEventStoreRequest request) {
-        final var esid = aliases.getEventStoreId(request.getEsid());
-        final var details = detailsRepository.getByEsid(esid);
-        final var provider = getProvider(details.provider());
-        return provider.drop(request);
-    }
-
-    private boolean hasBackend(Provider provider, String storageBackendName) {
-        return provider.storageBackends()
-                .stream()
-                .anyMatch(backend -> backend.getName().equals(storageBackendName));
     }
 
     public EventStore resolveEventStore(String esidOrAlias) {
@@ -75,25 +57,25 @@ public class EventStoreManager implements ApplicationListener<MubelEventEnvelope
         return context;
     }
 
-    public void onApplicationEvent(MubelEventEnvelope envelope) {
+    public void onApplicationEvent(EventStoreEventEnvelope envelope) {
         switch (envelope.event()) {
-            case MubelEvents.EventStoreOpened eventStoreOpened -> handleOpened(eventStoreOpened);
-            case MubelEvents.EventStoreClosed eventStoreClosed -> handleClosed(eventStoreClosed);
+            case EventStoreEvents.EventStoreOpened eventStoreOpened -> handleOpened(eventStoreOpened);
+            case EventStoreEvents.EventStoreClosed eventStoreClosed -> handleClosed(eventStoreClosed);
         }
     }
 
-    private void handleClosed(MubelEvents.EventStoreClosed eventStoreClosed) {
+    private void handleClosed(EventStoreEvents.EventStoreClosed eventStoreClosed) {
         eventStores.remove(eventStoreClosed.esid());
         LOG.info("Event store closed: {}", eventStoreClosed.esid());
     }
 
-    private void handleOpened(MubelEvents.EventStoreOpened eventStoreOpened) {
+    private void handleOpened(EventStoreEvents.EventStoreOpened eventStoreOpened) {
         eventStores.put(eventStoreOpened.esid(), eventStoreOpened.context());
         LOG.info("Event store opened: {}", eventStoreOpened.esid());
     }
 
     public List<Provider> providers() {
-        return List.copyOf(providers);
+        return providers.all();
     }
 
     public List<EventStoreDetails> getAllEventStoreDetails() {
@@ -109,13 +91,6 @@ public class EventStoreManager implements ApplicationListener<MubelEventEnvelope
                 .setDataFormat(src.dataFormat())
                 .setType(src.type().name())
                 .build();
-    }
-
-    private Provider getProvider(String providerName) {
-        return providers.stream()
-                .filter(provider -> provider.name().equals(providerName))
-                .findFirst()
-                .orElseThrow(() -> new ResourceNotFoundException("No provider found for name: " + providerName));
     }
 
     public Flux<EventData> subscribe(SubscribeRequest request) {

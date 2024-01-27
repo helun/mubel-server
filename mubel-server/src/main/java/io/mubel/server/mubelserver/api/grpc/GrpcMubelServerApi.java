@@ -15,12 +15,12 @@ public class GrpcMubelServerApi extends EventServiceGrpc.EventServiceImplBase {
     SubscribeApiService subscribeApiService;
 
     @Override
-    public void provision(ProvisionEventStoreRequest request, StreamObserver<EventStoreDetails> responseObserver) {
+    public void provision(ProvisionEventStoreRequest request, StreamObserver<JobStatus> responseObserver) {
         eventStoreApiService.provision(request, responseObserver);
     }
 
     @Override
-    public void drop(DropEventStoreRequest request, StreamObserver<DropEventStoreResponse> responseObserver) {
+    public void drop(DropEventStoreRequest request, StreamObserver<JobStatus> responseObserver) {
         eventStoreApiService.drop(request, responseObserver);
     }
 

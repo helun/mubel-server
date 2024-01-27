@@ -248,8 +248,8 @@ message JobStatus {
   string jobId = 1;
   JobState state = 2;
   string description = 3;
-  // error message if status is FAILED
-  string message = 4;
+  // Problem detail if state is FAILED
+  ProblemDetail problem = 4;
   // progress in percent
   uint32 progress = 5;
   uint64 updatedAt = 6;

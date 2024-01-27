@@ -1,0 +1,25 @@
+spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+mubel.provider.jdbc.enabled=true
+# postgres
+mubel.provider.jdbc.datasources[0].name=pg_backend
+mubel.provider.jdbc.datasources[0].url=jdbc:postgresql://localhost:5432/inventory
+mubel.provider.jdbc.datasources[0].username=postgres
+mubel.provider.jdbc.datasources[0].password=postgres_pw
+mubel.provider.jdbc.datasources[0].maximum-pool-size=2
+# system db (postgres)
+mubel.provider.jdbc.datasources[1].name=systemdb
+mubel.provider.jdbc.datasources[1].url=jdbc:postgresql://localhost:5432/systemdb
+mubel.provider.jdbc.datasources[1].username=test
+mubel.provider.jdbc.datasources[1].password=test
+# mysql
+mubel.provider.jdbc.datasources[2].name=mysql_backend
+mubel.provider.jdbc.datasources[2].url=jdbc:mysql://localhost:3306/old_db
+mubel.provider.jdbc.datasources[2].username=root
+mubel.provider.jdbc.datasources[2].password=root_pw
+# systemdb
+mubel.provider.jdbc.systemdb.datasource=systemdb
+# backends
+mubel.provider.jdbc.backends[0].datasource=pg_backend
+mubel.provider.jdbc.backends[0].name=postgres
+mubel.provider.jdbc.backends[1].datasource=mysql_backend
+mubel.provider.jdbc.backends[1].name=mysql_backend

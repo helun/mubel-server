@@ -1,10 +1,9 @@
 package io.mubel.server.spi;
 
-import io.mubel.api.grpc.DropEventStoreRequest;
 import io.mubel.api.grpc.DropEventStoreResponse;
-import io.mubel.api.grpc.ProvisionEventStoreRequest;
-import io.mubel.api.grpc.StorageBackendInfo;
-import io.mubel.server.spi.eventstore.SpiEventStoreDetails;
+import io.mubel.server.spi.model.DropEventStoreCommand;
+import io.mubel.server.spi.model.ProvisionCommand;
+import io.mubel.server.spi.model.StorageBackendProperties;
 
 import java.util.Set;
 
@@ -12,9 +11,12 @@ public interface Provider {
 
     String name();
 
-    Set<StorageBackendInfo> storageBackends();
+    Set<StorageBackendProperties> storageBackends();
 
-    SpiEventStoreDetails provision(ProvisionEventStoreRequest request);
+    void provision(ProvisionCommand command);
 
-    DropEventStoreResponse drop(DropEventStoreRequest request);
+    DropEventStoreResponse drop(DropEventStoreCommand command);
+
+    StorageBackendProperties getStorageBackend(String storageBackendName);
+
 }

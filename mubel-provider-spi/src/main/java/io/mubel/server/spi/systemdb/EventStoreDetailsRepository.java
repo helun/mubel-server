@@ -1,11 +1,8 @@
 package io.mubel.server.spi.systemdb;
 
-import io.mubel.server.spi.eventstore.SpiEventStoreDetails;
+import io.mubel.server.spi.model.SpiEventStoreDetails;
+import io.mubel.server.spi.support.Repository;
 
-import java.util.List;
+public interface EventStoreDetailsRepository extends Repository<SpiEventStoreDetails> {
 
-public interface EventStoreDetailsRepository {
-    List<SpiEventStoreDetails> getAll();
-
-    SpiEventStoreDetails getByEsid(String esid);
 }
