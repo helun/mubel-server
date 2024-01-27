@@ -29,6 +29,7 @@ public class JdbcProviderAutoconfiguration {
         Map<String, DataSource> dataSourceMap = new HashMap<>();
         properties.getDatasources().forEach(config -> {
             HikariConfig hikariConfig = new HikariConfig();
+            hikariConfig.setPoolName(config.getName());
             hikariConfig.setJdbcUrl(config.getUrl());
             hikariConfig.setUsername(config.getUsername());
             hikariConfig.setPassword(config.getPassword());

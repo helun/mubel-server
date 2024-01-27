@@ -22,4 +22,4 @@ mubel.provider.jdbc.systemdb.datasource=systemdb
 mubel.provider.jdbc.backends[0].datasource=pg_backend
 mubel.provider.jdbc.backends[0].name=postgres
 mubel.provider.jdbc.backends[1].datasource=mysql_backend
-mubel.provider.jdbc.backends[1].name=mysql_backend
+mubel.provider.jdbc.backends[1].name=mysql

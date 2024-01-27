@@ -28,12 +28,12 @@ public class EventStoreFactory {
 
     public JdbcEventStoreContext create(ProvisionEventStoreRequest request) {
         var backendProps = resolveBackendProperties(request);
-        var dataSource = dataSources.get(backendProps.getName());
+        var dataSource = dataSources.get(backendProps.getDataSource());
         if (dataSource == null) {
-            throw new IllegalArgumentException("No data source found for backend: " + request.getStorageBackendName());
+            throw new IllegalArgumentException("No datasource found for backend: " + request.getStorageBackendName());
         }
-        
-        var config = properties.findDataSource(backendProps.getName())
+
+        var config = properties.findDataSource(backendProps.getDataSource())
                 .orElseThrow();
 
         return switch (resolveStorageBackend(config)) {

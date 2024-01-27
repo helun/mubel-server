@@ -33,13 +33,20 @@ class JdbcProviderAutoconfigurationTest {
 
     @DynamicPropertySource
     static void setProperties(DynamicPropertyRegistry registry) {
-        registry.add("mubel.provider.jdbc.datasources.pg_backend.url", postgres::getJdbcUrl);
-        registry.add("mubel.provider.jdbc.datasources.pg_backend.username", postgres::getUsername);
-        registry.add("mubel.provider.jdbc.datasources.pg_backend.password", postgres::getPassword);
+        registry.add("mubel.provider.jdbc.datasources[0].name", () -> "pg_backend");
+        registry.add("mubel.provider.jdbc.datasources[0].url", postgres::getJdbcUrl);
+        registry.add("mubel.provider.jdbc.datasources[0].username", postgres::getUsername);
+        registry.add("mubel.provider.jdbc.datasources[0].password", postgres::getPassword);
 
-        registry.add("mubel.provider.jdbc.datasources.mysql_backend.url", mysql::getJdbcUrl);
-        registry.add("mubel.provider.jdbc.datasources.mysql_backend.username", mysql::getUsername);
-        registry.add("mubel.provider.jdbc.datasources.mysql_backend.password", mysql::getPassword);
+        registry.add("mubel.provider.jdbc.datasources[1].name", () -> "systemdb");
+        registry.add("mubel.provider.jdbc.datasources[1].url", postgres::getJdbcUrl);
+        registry.add("mubel.provider.jdbc.datasources[1].username", postgres::getUsername);
+        registry.add("mubel.provider.jdbc.datasources[1].password", postgres::getPassword);
+
+        registry.add("mubel.provider.jdbc.datasources[2].name", () -> "mysql_backend");
+        registry.add("mubel.provider.jdbc.datasources[2].url", mysql::getJdbcUrl);
+        registry.add("mubel.provider.jdbc.datasources[2].username", mysql::getUsername);
+        registry.add("mubel.provider.jdbc.datasources[2].password", mysql::getPassword);
     }
 
     @Autowired
@@ -61,7 +68,7 @@ class JdbcProviderAutoconfigurationTest {
     void createPostgresEventStore() {
         var request = ProvisionEventStoreRequest.newBuilder()
                 .setEsid("test-esid")
-                .setStorageBackendName("pg_backend")
+                .setStorageBackendName("postgres")
                 .build();
         var context = eventStoreFactory.create(request);
         assertThat(context).isNotNull();

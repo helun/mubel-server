@@ -59,6 +59,10 @@ public class JdbcProviderProperties {
         private long idleTimeout;
         private long maxLifetime;
 
+        public DataSourceProperties() {
+            setGenerateUniqueName(false);
+        }
+
         public int getMaximumPoolSize() {
             return maximumPoolSize;
         }
@@ -94,7 +98,7 @@ public class JdbcProviderProperties {
 
     public static class BackendProperties {
         private String name;
-        private String dataSourceName;
+        private String dataSource;
 
         public String getName() {
             return name;
@@ -104,12 +108,12 @@ public class JdbcProviderProperties {
             this.name = name;
         }
 
-        public String getDataSourceName() {
-            return dataSourceName;
+        public String getDataSource() {
+            return dataSource;
         }
 
-        public void setDataSourceName(String dataSourceName) {
-            this.dataSourceName = dataSourceName;
+        public void setDataSource(String dataSource) {
+            this.dataSource = dataSource;
         }
     }
 
