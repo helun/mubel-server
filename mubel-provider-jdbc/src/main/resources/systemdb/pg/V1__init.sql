@@ -9,11 +9,14 @@ create table event_store_details
 
 create table job_status
 (
-    job_id      uuid primary key,
-    state       text      not null,
-    description text,
-    message     text,
-    progress    smallint,
-    updated_at  timestamp not null default now(),
-    created_at  timestamp not null default now()
+    job_id         text primary key,
+    state          text   not null,
+    description    text,
+    progress       smallint,
+    updated_at     bigint not null,
+    created_at     bigint not null,
+    problem_type   text,
+    problem_title  text,
+    problem_status smallint,
+    problem_detail text
 );

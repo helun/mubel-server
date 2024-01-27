@@ -19,6 +19,7 @@ public abstract class EventStoreDetailsRepositoryTestBase {
     void crud() {
         var details = getSpiEventStoreDetails();
         assertThat(repository().put(details)).isEqualTo(details);
+        assertThat(repository().exists("esid")).isTrue();
         assertThat(repository().get("esid")).isEqualTo(details);
         repository().remove("esid");
         assertThat(repository().find("esid")).isEmpty();

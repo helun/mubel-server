@@ -77,8 +77,7 @@ public abstract class CrudRepositoryBase<T> implements Repository<T> {
         return jdbi.withHandle(h ->
                 h.createQuery(statements.exists())
                         .bind(0, key)
-                        .mapTo(type)
-                        .findFirst()
-                        .isPresent());
+                        .mapTo(Boolean.class)
+                        .one());
     }
 }
