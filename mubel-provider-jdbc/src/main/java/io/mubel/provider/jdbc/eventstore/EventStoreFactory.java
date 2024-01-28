@@ -5,22 +5,22 @@ import io.mubel.provider.jdbc.eventstore.configuration.JdbcProviderProperties;
 import io.mubel.provider.jdbc.eventstore.pg.PgErrorMapper;
 import io.mubel.provider.jdbc.eventstore.pg.eventstore.PgEventStoreStatements;
 import io.mubel.provider.jdbc.eventstore.pg.eventstore.PgLiveEventsService;
+import io.mubel.provider.jdbc.support.JdbcDataSources;
 import io.mubel.server.spi.exceptions.ResourceNotFoundException;
 import org.jdbi.v3.core.Jdbi;
 import org.springframework.stereotype.Service;
 import reactor.core.scheduler.Scheduler;
 
 import javax.sql.DataSource;
-import java.util.Map;
 
 @Service
 public class EventStoreFactory {
 
-    private final Map<String, DataSource> dataSources;
+    private final JdbcDataSources dataSources;
     private final JdbcProviderProperties properties;
     private final Scheduler scheduler;
 
-    public EventStoreFactory(Map<String, DataSource> dataSources, JdbcProviderProperties properties, Scheduler scheduler) {
+    public EventStoreFactory(JdbcDataSources dataSources, JdbcProviderProperties properties, Scheduler scheduler) {
         this.dataSources = dataSources;
         this.properties = properties;
         this.scheduler = scheduler;
@@ -33,12 +33,9 @@ public class EventStoreFactory {
             throw new IllegalArgumentException("No datasource found for backend: " + request.getStorageBackendName());
         }
 
-        var config = properties.findDataSource(backendProps.getDataSource())
-                .orElseThrow();
-
-        return switch (resolveStorageBackend(config)) {
-            case POSTGRES -> createPostgresEventStore(dataSource, request);
-            case MYSQL -> createMysqlEventStore(dataSource, request);
+        return switch (dataSource.backendType()) {
+            case PG -> createPostgresEventStore(dataSource.dataSource(), request);
+            case MYSQL -> createMysqlEventStore(dataSource.dataSource(), request);
             default -> throw new IllegalArgumentException("No event store found for backend: " + backendProps);
         };
     }
@@ -87,23 +84,6 @@ public class EventStoreFactory {
                 replayService,
                 liveService
         );
-    }
-
-    private StorageBackend resolveStorageBackend(JdbcProviderProperties.DataSourceProperties dsProps) {
-        var url = dsProps.getUrl();
-        if (url.startsWith("jdbc:postgresql")) {
-            return StorageBackend.POSTGRES;
-        } else if (url.startsWith("jdbc:mysql")) {
-            return StorageBackend.MYSQL;
-        } else {
-            return StorageBackend.OTHER;
-        }
-    }
-
-    enum StorageBackend {
-        POSTGRES,
-        MYSQL,
-        OTHER
     }
 
 }

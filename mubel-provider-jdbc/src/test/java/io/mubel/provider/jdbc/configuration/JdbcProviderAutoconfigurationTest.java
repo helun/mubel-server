@@ -4,6 +4,8 @@ import io.mubel.api.grpc.ProvisionEventStoreRequest;
 import io.mubel.provider.jdbc.JdbcProviderTestApplication;
 import io.mubel.provider.jdbc.eventstore.EventStoreFactory;
 import io.mubel.provider.jdbc.eventstore.configuration.JdbcProviderProperties;
+import io.mubel.provider.jdbc.support.JdbcDataSources;
+import io.mubel.server.spi.model.BackendType;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -14,9 +16,6 @@ import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-
-import javax.sql.DataSource;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -53,7 +52,7 @@ class JdbcProviderAutoconfigurationTest {
     JdbcProviderProperties properties;
 
     @Autowired
-    Map<String, DataSource> dataSources;
+    JdbcDataSources dataSources;
 
     @Autowired
     EventStoreFactory eventStoreFactory;
@@ -61,7 +60,9 @@ class JdbcProviderAutoconfigurationTest {
     @Test
     void baseCase() {
         assertThat(properties.isEnabled()).isTrue();
-        assertThat(dataSources).containsKeys("pg_backend", "mysql_backend");
+        assertThat(dataSources.get("pg_backend").backendType()).isEqualTo(BackendType.PG);
+        assertThat(dataSources.get("mysql_backend").backendType()).isEqualTo(BackendType.MYSQL);
+        assertThat(dataSources.get("systemdb").backendType()).isEqualTo(BackendType.PG);
     }
 
     @Test
