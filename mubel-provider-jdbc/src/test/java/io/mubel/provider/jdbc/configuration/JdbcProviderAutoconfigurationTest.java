@@ -6,6 +6,8 @@ import io.mubel.provider.jdbc.eventstore.EventStoreFactory;
 import io.mubel.provider.jdbc.eventstore.configuration.JdbcProviderProperties;
 import io.mubel.provider.jdbc.support.JdbcDataSources;
 import io.mubel.server.spi.model.BackendType;
+import io.mubel.server.spi.systemdb.EventStoreDetailsRepository;
+import io.mubel.server.spi.systemdb.JobStatusRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -56,6 +58,12 @@ class JdbcProviderAutoconfigurationTest {
 
     @Autowired
     EventStoreFactory eventStoreFactory;
+
+    @Autowired
+    EventStoreDetailsRepository detailsRepository;
+
+    @Autowired
+    JobStatusRepository jobStatusRepository;
 
     @Test
     void baseCase() {
