@@ -5,6 +5,7 @@ import io.mubel.provider.jdbc.eventstore.JdbcEventStore;
 import io.mubel.provider.jdbc.eventstore.JdbcEventStoreProvisioner;
 import io.mubel.provider.jdbc.eventstore.JdbcReplayService;
 import io.mubel.provider.jdbc.eventstore.pg.PgErrorMapper;
+import io.mubel.provider.jdbc.eventstore.pg.PgEventStoreStatements;
 import io.mubel.provider.test.ReplayServiceTestBase;
 import io.mubel.server.spi.eventstore.EventStore;
 import io.mubel.server.spi.eventstore.ReplayService;

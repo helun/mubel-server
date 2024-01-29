@@ -1,4 +1,4 @@
-package io.mubel.provider.jdbc.eventstore.pg.eventstore;
+package io.mubel.provider.jdbc.eventstore.pg;
 
 import io.mubel.api.grpc.EventData;
 import io.mubel.provider.jdbc.eventstore.AbstractLiveEventsService;

@@ -4,6 +4,8 @@ import io.mubel.provider.jdbc.Containers;
 import io.mubel.provider.jdbc.eventstore.JdbcEventStore;
 import io.mubel.provider.jdbc.eventstore.JdbcEventStoreProvisioner;
 import io.mubel.provider.jdbc.eventstore.pg.PgErrorMapper;
+import io.mubel.provider.jdbc.eventstore.pg.PgEventStoreStatements;
+import io.mubel.provider.jdbc.eventstore.pg.PgLiveEventsService;
 import io.mubel.provider.test.LiveEventsServiceTestBase;
 import io.mubel.server.spi.eventstore.EventStore;
 import io.mubel.server.spi.eventstore.LiveEventsService;

@@ -2,7 +2,6 @@ package io.mubel.provider.jdbc.eventstore.pg;
 
 import com.google.common.base.Throwables;
 import io.mubel.provider.jdbc.eventstore.ErrorMapper;
-import io.mubel.provider.jdbc.eventstore.pg.eventstore.PgEventStoreStatements;
 import io.mubel.server.spi.exceptions.EventVersionConflictException;
 import io.mubel.server.spi.exceptions.StorageBackendException;
 import org.postgresql.util.PSQLException;
