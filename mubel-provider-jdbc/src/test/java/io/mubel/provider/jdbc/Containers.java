@@ -2,6 +2,7 @@ package io.mubel.provider.jdbc;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
@@ -31,7 +32,7 @@ public final class Containers {
                 .withLogConsumer(new Slf4jLogConsumer(org.slf4j.LoggerFactory.getLogger("postgres")));
     }
 
-    public static DataSource dataSource(PostgreSQLContainer container) {
+    public static DataSource dataSource(JdbcDatabaseContainer container) {
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl(container.getJdbcUrl());
         config.setUsername(container.getUsername());
@@ -40,5 +41,4 @@ public final class Containers {
         config.setMaximumPoolSize(10);
         return new HikariDataSource(config);
     }
-
 }
