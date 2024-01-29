@@ -23,6 +23,6 @@ public abstract class EventStoreDetailsStatements implements RepositoryStatement
 
     @Override
     public String exists() {
-        return "SELECT EXISTS(SELECT 1 FROM event_store_details WHERE id = ?)";
+        return "SELECT EXISTS(SELECT 1 FROM event_store_details WHERE esid = ?)";
     }
 }
