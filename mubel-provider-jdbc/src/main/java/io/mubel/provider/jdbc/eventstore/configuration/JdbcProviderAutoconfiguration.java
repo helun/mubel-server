@@ -15,8 +15,11 @@ import io.mubel.server.spi.systemdb.JobStatusRepository;
 import org.jdbi.v3.core.Jdbi;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.lang.Nullable;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
@@ -53,11 +56,17 @@ public class JdbcProviderAutoconfiguration {
     }
 
     @Bean
+    @Nullable
+    @ConditionalOnProperty(prefix = "mubel.provider.jdbc.systemdb", name = "datasource")
     public MubelDataSource systemDbDataSource(JdbcDataSources dataSources, JdbcProviderProperties properties) {
+        if (properties.getSystemdb() == null) {
+            return null;
+        }
         return dataSources.get(properties.getSystemdb().getDataSource());
     }
 
     @Bean
+    @ConditionalOnBean(name = "systemDbDataSource")
     public EventStoreDetailsRepository jdbcEventStoreDetailsRepository(
             @Qualifier("systemDbDataSource") MubelDataSource systemDbDataSource
     ) {
@@ -72,6 +81,7 @@ public class JdbcProviderAutoconfiguration {
     }
 
     @Bean
+    @ConditionalOnBean(name = "systemDbDataSource")
     public JobStatusRepository jdbcJobStatusRepository(
             @Qualifier("systemDbDataSource") MubelDataSource systemDbDataSource
     ) {
