@@ -2,6 +2,7 @@ package io.mubel.provider.jdbc.eventstore;
 
 import io.mubel.api.grpc.ProvisionEventStoreRequest;
 import io.mubel.provider.jdbc.eventstore.configuration.JdbcProviderProperties;
+import io.mubel.provider.jdbc.eventstore.mysql.MysqlEventStoreStatements;
 import io.mubel.provider.jdbc.eventstore.pg.PgErrorMapper;
 import io.mubel.provider.jdbc.eventstore.pg.PgEventStoreStatements;
 import io.mubel.provider.jdbc.eventstore.pg.PgLiveEventsService;
@@ -52,7 +53,34 @@ public class EventStoreFactory {
             DataSource dataSource,
             ProvisionEventStoreRequest request
     ) {
-        throw new UnsupportedOperationException("MySQL is not supported yet");
+        var jdbi = Jdbi.create(dataSource);
+        var statements = new MysqlEventStoreStatements(request.getEsid());
+        var eventStore = new JdbcEventStore(
+                jdbi,
+                statements,
+                new PgErrorMapper()
+        );
+        var provisioner = new JdbcEventStoreProvisioner(
+                dataSource,
+                statements
+        );
+        var replayService = new JdbcReplayService(
+                jdbi,
+                statements,
+                scheduler
+        );
+        var liveService = new PgLiveEventsService(
+                dataSource,
+                request.getEsid() + "_live",
+                eventStore,
+                scheduler
+        );
+        return new JdbcEventStoreContext(
+                eventStore,
+                provisioner,
+                replayService,
+                liveService
+        );
     }
 
     private JdbcEventStoreContext createPostgresEventStore(DataSource dataSource, ProvisionEventStoreRequest request) {

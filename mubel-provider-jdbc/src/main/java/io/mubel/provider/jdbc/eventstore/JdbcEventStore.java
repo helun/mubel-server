@@ -59,8 +59,8 @@ public class JdbcEventStore implements EventStore {
                 final var batch = h.prepareBatch(statements.append());
                 for (var ed : request.getEventList()) {
                     final var millis = clock.millis();
-                    batch.bind(0, UUID.fromString(ed.getId()))
-                            .bind(1, UUID.fromString(ed.getStreamId()))
+                    batch.bind(0, statements.convertUUID(ed.getId()))
+                            .bind(1, statements.convertUUID(ed.getStreamId()))
                             .bind(2, ed.getVersion())
                             .bind(3, ed.getType())
                             .bind(4, millis)
@@ -93,7 +93,7 @@ public class JdbcEventStore implements EventStore {
 
     @Override
     public void truncate() {
-        jdbi.useHandle(h -> h.createUpdate(statements.truncate()).execute());
+        jdbi.useHandle(h -> statements.truncate().forEach(h::execute));
     }
 
     public long maxSequenceNo() {
@@ -107,13 +107,13 @@ public class JdbcEventStore implements EventStore {
             final Query query;
             if (request.getToVersion() == 0) {
                 query = h.createQuery(statements.getSql())
-                        .bind(0, UUID.fromString(nnStreamId))
+                        .bind(0, statements.convertUUID(nnStreamId))
                         .bind(1, request.getFromVersion())
                         .bind(2, sizeLimit);
 
             } else {
                 query = h.createQuery(statements.getMaxVersionSql())
-                        .bind(0, UUID.fromString(nnStreamId))
+                        .bind(0, statements.convertUUID(nnStreamId))
                         .bind(1, request.getFromVersion())
                         .bind(2, request.getToVersion())
                         .bind(3, sizeLimit);

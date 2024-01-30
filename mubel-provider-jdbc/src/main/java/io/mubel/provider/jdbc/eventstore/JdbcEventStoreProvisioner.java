@@ -15,16 +15,13 @@ public class JdbcEventStoreProvisioner implements EventStoreProvisioner {
 
     public static void provision(DataSource ds, EventStoreStatements statements) {
         Jdbi jdbi = Jdbi.create(ds);
-        jdbi.useHandle(handle -> {
-            handle.execute(statements.ddl());
-        });
+        jdbi.useHandle(h -> statements.ddl().forEach(h::execute));
     }
 
     public static void drop(DataSource ds, EventStoreStatements statements) {
         Jdbi jdbi = Jdbi.create(ds);
-        jdbi.useHandle(handle -> {
-            handle.execute(statements.dropSql());
-        });
+
+        jdbi.useHandle(h -> statements.dropSql().forEach(h::execute));
     }
 
     public JdbcEventStoreProvisioner(DataSource ds, EventStoreStatements statements) {
@@ -40,6 +37,6 @@ public class JdbcEventStoreProvisioner implements EventStoreProvisioner {
 
     @Override
     public void drop(DropEventStoreRequest request) {
-
+        JdbcEventStoreProvisioner.drop(dataSource, statements);
     }
 }

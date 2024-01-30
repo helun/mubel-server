@@ -2,7 +2,9 @@ package io.mubel.provider.jdbc.eventstore.pg;
 
 import io.mubel.provider.jdbc.eventstore.EventStoreStatements;
 
+import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 public class PgEventStoreStatements extends EventStoreStatements {
 
@@ -21,8 +23,7 @@ public class PgEventStoreStatements extends EventStoreStatements {
               type TEXT NOT NULL,
               created_at bigint NOT NULL,
               data BYTEA,
-              meta_data BYTEA,
-              seq_no BIGINT
+              meta_data BYTEA
             );
                         
             CREATE UNIQUE INDEX events_sid_ver ON %1$s.events(stream_id, version);
@@ -148,15 +149,11 @@ public class PgEventStoreStatements extends EventStoreStatements {
                 eventStoreName,
                 APPEND_SQL_TPL.formatted(eventStoreName),
                 LOG_REQUEST_SQL_TPL.formatted(eventStoreName),
-                INSERT_EVENT_TYPE_SQL_TPL.formatted(eventStoreName),
-                INSERT_STREAM_SQL_TPL.formatted(eventStoreName),
-                SELECT_STREAM_IDS_SQL_TPL.formatted(eventStoreName),
                 GET_SQL_TPL.formatted(eventStoreName),
                 GET_MAX_VERSION_SQL_TPL.formatted(eventStoreName),
                 PAGED_REPLAY_SQL_TPL.formatted(eventStoreName),
-                SELECT_ALL_EVENT_TYPES_SQL_TPL.formatted(eventStoreName),
-                DDL_TPL.formatted(eventStoreName),
-                DROP_SQL.formatted(eventStoreName)
+                List.of(DDL_TPL.formatted(eventStoreName)),
+                List.of(DROP_SQL.formatted(eventStoreName))
         );
     }
 
@@ -165,8 +162,8 @@ public class PgEventStoreStatements extends EventStoreStatements {
     }
 
     @Override
-    public String truncate() {
-        return TRUNCATE_SQL_TPL.formatted(eventStoreName());
+    public List<String> truncate() {
+        return List.of(TRUNCATE_SQL_TPL.formatted(eventStoreName()));
     }
 
     public static boolean isVersionConflictError(String violatedConstraint) {
@@ -181,5 +178,10 @@ public class PgEventStoreStatements extends EventStoreStatements {
     @Override
     public String getSequenceNoSql() {
         return "SELECT COALESCE(max(seq_id), 0) AS seq_id FROM %s.all_events_subscription".formatted(eventStoreName());
+    }
+
+    @Override
+    public Object convertUUID(String value) {
+        return UUID.fromString(value);
     }
 }

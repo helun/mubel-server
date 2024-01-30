@@ -1,31 +1,25 @@
 package io.mubel.provider.jdbc.eventstore;
 
+import java.util.List;
+
 public abstract class EventStoreStatements {
 
     private final String eventStoreName;
     private final String append;
     private final String logRequestSql;
-    private final String insertEventType;
-    private final String insertStream;
-    private final String selectStreamIds;
     private final String getSql;
     private final String getMaxVersionSql;
     private final String pagedReplaySql;
-    private final String getAllEventTypes;
-    private final String ddl;
-    private final String dropSql;
+    private final List<String> ddl;
+    private final List<String> dropSql;
 
-    protected EventStoreStatements(String eventStoreName, String append, String logRequestSql, String insertEventType, String insertStream, String selectStreamIds, String getSql, String getMaxVersionSql, String pagedReplaySql, String getAllEventTypes, String ddl, String dropSql) {
+    protected EventStoreStatements(String eventStoreName, String append, String logRequestSql, String getSql, String getMaxVersionSql, String pagedReplaySql, List<String> ddl, List<String> dropSql) {
         this.eventStoreName = eventStoreName;
         this.append = append;
         this.logRequestSql = logRequestSql;
-        this.insertEventType = insertEventType;
-        this.insertStream = insertStream;
-        this.selectStreamIds = selectStreamIds;
         this.getSql = getSql;
         this.getMaxVersionSql = getMaxVersionSql;
         this.pagedReplaySql = pagedReplaySql;
-        this.getAllEventTypes = getAllEventTypes;
         this.ddl = ddl;
         this.dropSql = dropSql;
     }
@@ -42,18 +36,6 @@ public abstract class EventStoreStatements {
         return eventStoreName;
     }
 
-    public String insertEventType() {
-        return insertEventType;
-    }
-
-    public String insertStream() {
-        return insertStream;
-    }
-
-    public String selectStreamIds() {
-        return selectStreamIds;
-    }
-
     public String getSql() {
         return getSql;
     }
@@ -66,19 +48,15 @@ public abstract class EventStoreStatements {
         return pagedReplaySql;
     }
 
-    public String getAllEventTypes() {
-        return getAllEventTypes;
-    }
-
     public int parseSizeLimit(int size) {
         return size == 0 ? 999 : size;
     }
 
-    public String ddl() {
+    public List<String> ddl() {
         return ddl;
     }
 
-    public String dropSql() {
+    public List<String> dropSql() {
         return dropSql;
     }
 
@@ -86,5 +64,9 @@ public abstract class EventStoreStatements {
 
     public abstract String replaySql();
 
-    public abstract String truncate();
+    public abstract List<String> truncate();
+
+    public Object convertUUID(String value) {
+        return value;
+    }
 }

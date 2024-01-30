@@ -18,11 +18,13 @@ public final class Containers {
     }
 
     public static MySQLContainer mySqlContainer() {
-        return new MySQLContainer("mysql:latest")
+        return (MySQLContainer) new MySQLContainer("mysql:latest")
                 .withUsername(USER)
-                .withPassword(USER);
+                .withPassword(USER)
+                .withCommand("--log-bin-trust-function-creators=1");
     }
 
+    @SuppressWarnings("unchecked")
     public static PostgreSQLContainer postgreSQLContainer() {
         return (PostgreSQLContainer) new PostgreSQLContainer("postgres:latest")
                 .withDatabaseName("events")
