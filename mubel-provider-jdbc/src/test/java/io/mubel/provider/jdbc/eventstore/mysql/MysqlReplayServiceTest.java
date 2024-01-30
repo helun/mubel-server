@@ -1,6 +1,7 @@
-package io.mubel.provider.jdbc.eventstore.pg;
+package io.mubel.provider.jdbc.eventstore.mysql;
 
 import io.mubel.provider.jdbc.Containers;
+import io.mubel.provider.jdbc.eventstore.EventStoreStatements;
 import io.mubel.provider.jdbc.eventstore.JdbcEventStore;
 import io.mubel.provider.jdbc.eventstore.JdbcEventStoreProvisioner;
 import io.mubel.provider.jdbc.eventstore.JdbcReplayService;
@@ -18,10 +19,10 @@ import reactor.core.scheduler.Schedulers;
 import java.util.concurrent.Executors;
 
 @Testcontainers
-public class PgReplayServiceTest extends ReplayServiceTestBase {
+public class MysqlReplayServiceTest extends ReplayServiceTestBase {
 
     @Container
-    static JdbcDatabaseContainer<?> container = Containers.postgreSQLContainer();
+    static JdbcDatabaseContainer<?> container = Containers.mySqlContainer();
 
     static EventStore eventStore;
 
@@ -32,15 +33,16 @@ public class PgReplayServiceTest extends ReplayServiceTestBase {
 
         var dataSource = Containers.dataSource(container);
         String eventStoreName = "test_es";
-        JdbcEventStoreProvisioner.provision(dataSource, new PgEventStoreStatements(eventStoreName));
+        EventStoreStatements statements = new MysqlEventStoreStatements(eventStoreName);
+        JdbcEventStoreProvisioner.provision(dataSource, statements);
         var jdbi = Jdbi.create(dataSource);
         eventStore = new JdbcEventStore(
                 jdbi,
-                new PgEventStoreStatements(eventStoreName),
-                new PgErrorMapper()
+                statements,
+                new MysqlErrorMapper()
         ).init();
         replayService = new JdbcReplayService(jdbi,
-                new PgEventStoreStatements(eventStoreName),
+                statements,
                 Schedulers.fromExecutorService(Executors.newVirtualThreadPerTaskExecutor())
         );
     }
