@@ -40,7 +40,7 @@ public class PgLiveEventsService extends AbstractLiveEventsService {
                 while (shouldRun()) {
                     var notifications = pgConnection.getNotifications(2000);
                     if (notifications != null && notifications.length > 0) {
-                        LOG.debug("Received notification: {}", notifications);
+                        LOG.debug("Received notifications: {}", notifications.length);
                         dispatchNewEvents(emitter);
                     }
                 }
