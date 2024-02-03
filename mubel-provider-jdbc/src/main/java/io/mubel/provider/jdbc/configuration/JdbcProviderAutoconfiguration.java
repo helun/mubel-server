@@ -1,4 +1,4 @@
-package io.mubel.provider.jdbc.eventstore.configuration;
+package io.mubel.provider.jdbc.configuration;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
@@ -6,13 +6,11 @@ import io.mubel.provider.jdbc.JdbcProvider;
 import io.mubel.provider.jdbc.eventstore.EventStoreFactory;
 import io.mubel.provider.jdbc.support.JdbcDataSources;
 import io.mubel.provider.jdbc.support.MubelDataSource;
-import io.mubel.provider.jdbc.systemdb.EventStoreDetailsRowMapper;
-import io.mubel.provider.jdbc.systemdb.JdbcEventStoreDetailsRepository;
-import io.mubel.provider.jdbc.systemdb.JdbcJobStatusRepository;
-import io.mubel.provider.jdbc.systemdb.JobStatusRowMapper;
+import io.mubel.provider.jdbc.systemdb.*;
 import io.mubel.provider.jdbc.systemdb.pg.PgEventStoreDetailsStatements;
 import io.mubel.provider.jdbc.systemdb.pg.PgJobStatusStatements;
 import io.mubel.server.spi.Provider;
+import io.mubel.server.spi.systemdb.EventStoreAliasRepository;
 import io.mubel.server.spi.systemdb.EventStoreDetailsRepository;
 import io.mubel.server.spi.systemdb.JobStatusRepository;
 import org.jdbi.v3.core.Jdbi;
@@ -21,6 +19,7 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.lang.Nullable;
 import reactor.core.scheduler.Scheduler;
@@ -96,6 +95,15 @@ public class JdbcProviderAutoconfiguration {
             default ->
                     throw new IllegalArgumentException("No job status repository implementation for backend type: " + systemDbDataSource.backendType());
         };
+    }
+
+    @Bean
+    @ConditionalOnBean(name = "systemDbDataSource")
+    public EventStoreAliasRepository jdbcEventStoreAliasRepository(
+            @Qualifier("systemDbDataSource") MubelDataSource systemDbDataSource,
+            CacheManager cacheManager
+    ) {
+        return new JdbcEventStoreAliasRepository(Jdbi.create(systemDbDataSource.dataSource()), cacheManager);
     }
 
     @Bean

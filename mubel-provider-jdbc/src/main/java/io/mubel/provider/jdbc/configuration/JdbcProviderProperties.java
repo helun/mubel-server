@@ -1,4 +1,4 @@
-package io.mubel.provider.jdbc.eventstore.configuration;
+package io.mubel.provider.jdbc.configuration;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

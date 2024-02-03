@@ -1,6 +1,6 @@
 package io.mubel.provider.jdbc.eventstore;
 
-import io.mubel.provider.jdbc.eventstore.configuration.JdbcProviderProperties;
+import io.mubel.provider.jdbc.configuration.JdbcProviderProperties;
 import io.mubel.provider.jdbc.eventstore.mysql.MysqlEventStoreStatements;
 import io.mubel.provider.jdbc.eventstore.pg.PgErrorMapper;
 import io.mubel.provider.jdbc.eventstore.pg.PgEventStoreStatements;

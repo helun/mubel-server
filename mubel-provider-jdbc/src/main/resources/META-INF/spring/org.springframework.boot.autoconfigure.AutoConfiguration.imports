@@ -1,1 +1,1 @@
-io.mubel.provider.jdbc.eventstore.configuration.JdbcProviderAutoconfiguration
+io.mubel.provider.jdbc.configuration.JdbcProviderAutoconfiguration

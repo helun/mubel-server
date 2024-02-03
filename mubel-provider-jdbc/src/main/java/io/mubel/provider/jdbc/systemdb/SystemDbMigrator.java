@@ -1,6 +1,6 @@
 package io.mubel.provider.jdbc.systemdb;
 
-import io.mubel.provider.jdbc.eventstore.configuration.JdbcProviderProperties;
+import io.mubel.provider.jdbc.configuration.JdbcProviderProperties;
 import io.mubel.server.spi.exceptions.MubelConfigurationException;
 import org.flywaydb.core.Flyway;
 import org.slf4j.Logger;

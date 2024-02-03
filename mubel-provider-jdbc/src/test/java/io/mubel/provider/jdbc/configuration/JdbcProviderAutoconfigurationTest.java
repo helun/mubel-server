@@ -3,7 +3,6 @@ package io.mubel.provider.jdbc.configuration;
 import io.mubel.api.grpc.DataFormat;
 import io.mubel.provider.jdbc.JdbcProviderTestApplication;
 import io.mubel.provider.jdbc.eventstore.EventStoreFactory;
-import io.mubel.provider.jdbc.eventstore.configuration.JdbcProviderProperties;
 import io.mubel.provider.jdbc.support.JdbcDataSources;
 import io.mubel.server.spi.model.BackendType;
 import io.mubel.server.spi.model.ProvisionCommand;
