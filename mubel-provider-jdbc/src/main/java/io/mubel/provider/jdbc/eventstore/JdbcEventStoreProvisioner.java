@@ -1,8 +1,8 @@
 package io.mubel.provider.jdbc.eventstore;
 
-import io.mubel.api.grpc.DropEventStoreRequest;
-import io.mubel.api.grpc.ProvisionEventStoreRequest;
 import io.mubel.server.spi.eventstore.EventStoreProvisioner;
+import io.mubel.server.spi.model.DropEventStoreCommand;
+import io.mubel.server.spi.model.ProvisionCommand;
 import io.mubel.server.spi.model.SpiEventStoreDetails;
 import org.jdbi.v3.core.Jdbi;
 
@@ -30,13 +30,13 @@ public class JdbcEventStoreProvisioner implements EventStoreProvisioner {
     }
 
     @Override
-    public SpiEventStoreDetails provision(ProvisionEventStoreRequest request) {
+    public SpiEventStoreDetails provision(ProvisionCommand request) {
         JdbcEventStoreProvisioner.provision(dataSource, statements);
         return null;
     }
 
     @Override
-    public void drop(DropEventStoreRequest request) {
+    public void drop(DropEventStoreCommand command) {
         JdbcEventStoreProvisioner.drop(dataSource, statements);
     }
 }

@@ -1,8 +1,8 @@
 package io.mubel.provider.jdbc.eventstore.pg;
 
 import io.mubel.api.grpc.EventData;
-import io.mubel.provider.jdbc.eventstore.AbstractLiveEventsService;
 import io.mubel.provider.jdbc.eventstore.JdbcEventStore;
+import io.mubel.provider.jdbc.eventstore.JdbcLiveEventsService;
 import org.postgresql.jdbc.PgConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,7 +11,7 @@ import reactor.core.scheduler.Scheduler;
 
 import javax.sql.DataSource;
 
-public class PgLiveEventsService extends AbstractLiveEventsService {
+public class PgLiveEventsService extends JdbcLiveEventsService {
 
     private static final Logger LOG = LoggerFactory.getLogger(PgLiveEventsService.class);
     private final String channelName;

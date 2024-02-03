@@ -1,0 +1,27 @@
+version: '3'
+
+services:
+  database:
+    container_name: "mubel_postgres"
+    image: 'postgres:latest'
+    ports:
+      - 5432:5432
+
+    environment:
+      POSTGRES_USER: theuser
+      POSTGRES_PASSWORD: secret
+      POSTGRES_MULTIPLE_DATABASES: events,systemdb
+
+    volumes:
+      - ./pg-init-scripts:/docker-entrypoint-initdb.d
+
+  mysql:
+    container_name: "mubel_mysql"
+    image: "mysql:latest"
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_DATABASE: events
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: verysecret
+      MYSQL_USER: myuser

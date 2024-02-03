@@ -1,9 +1,9 @@
-package io.mubel.server.mubelserver.api.grpc;
+package io.mubel.server.api.grpc;
 
 import io.grpc.stub.StreamObserver;
 import io.mubel.api.grpc.EventData;
 import io.mubel.api.grpc.SubscribeRequest;
-import io.mubel.server.mubelserver.eventstore.EventStoreManager;
+import io.mubel.server.eventstore.EventStoreManager;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 

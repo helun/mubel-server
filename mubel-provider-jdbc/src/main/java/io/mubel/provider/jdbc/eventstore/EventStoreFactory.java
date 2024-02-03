@@ -1,6 +1,5 @@
 package io.mubel.provider.jdbc.eventstore;
 
-import io.mubel.api.grpc.ProvisionEventStoreRequest;
 import io.mubel.provider.jdbc.eventstore.configuration.JdbcProviderProperties;
 import io.mubel.provider.jdbc.eventstore.mysql.MysqlEventStoreStatements;
 import io.mubel.provider.jdbc.eventstore.pg.PgErrorMapper;
@@ -8,6 +7,7 @@ import io.mubel.provider.jdbc.eventstore.pg.PgEventStoreStatements;
 import io.mubel.provider.jdbc.eventstore.pg.PgLiveEventsService;
 import io.mubel.provider.jdbc.support.JdbcDataSources;
 import io.mubel.server.spi.exceptions.ResourceNotFoundException;
+import io.mubel.server.spi.model.ProvisionCommand;
 import org.jdbi.v3.core.Jdbi;
 import org.springframework.stereotype.Service;
 import reactor.core.scheduler.Scheduler;
@@ -27,22 +27,22 @@ public class EventStoreFactory {
         this.scheduler = scheduler;
     }
 
-    public JdbcEventStoreContext create(ProvisionEventStoreRequest request) {
-        var backendProps = resolveBackendProperties(request);
+    public JdbcEventStoreContext create(ProvisionCommand command) {
+        var backendProps = resolveBackendProperties(command);
         var dataSource = dataSources.get(backendProps.getDataSource());
         if (dataSource == null) {
-            throw new IllegalArgumentException("No datasource found for backend: " + request.getStorageBackendName());
+            throw new IllegalArgumentException("No datasource found for backend: " + command.storageBackendName());
         }
 
         return switch (dataSource.backendType()) {
-            case PG -> createPostgresEventStore(dataSource.dataSource(), request);
-            case MYSQL -> createMysqlEventStore(dataSource.dataSource(), request);
+            case PG -> createPostgresEventStore(dataSource.dataSource(), command);
+            case MYSQL -> createMysqlEventStore(dataSource.dataSource(), command);
             default -> throw new IllegalArgumentException("No event store found for backend: " + backendProps);
         };
     }
 
-    private JdbcProviderProperties.BackendProperties resolveBackendProperties(ProvisionEventStoreRequest request) {
-        var backendName = request.getStorageBackendName();
+    private JdbcProviderProperties.BackendProperties resolveBackendProperties(ProvisionCommand request) {
+        var backendName = request.storageBackendName();
         return properties.getBackends().stream()
                 .filter(backendProperties -> backendProperties.getName().equals(backendName))
                 .findFirst()
@@ -51,10 +51,10 @@ public class EventStoreFactory {
 
     private JdbcEventStoreContext createMysqlEventStore(
             DataSource dataSource,
-            ProvisionEventStoreRequest request
+            ProvisionCommand request
     ) {
         var jdbi = Jdbi.create(dataSource);
-        var statements = new MysqlEventStoreStatements(request.getEsid());
+        var statements = new MysqlEventStoreStatements(request.esid());
         var eventStore = new JdbcEventStore(
                 jdbi,
                 statements,
@@ -71,7 +71,7 @@ public class EventStoreFactory {
         );
         var liveService = new PgLiveEventsService(
                 dataSource,
-                request.getEsid() + "_live",
+                request.esid() + "_live",
                 eventStore,
                 scheduler
         );
@@ -83,9 +83,9 @@ public class EventStoreFactory {
         );
     }
 
-    private JdbcEventStoreContext createPostgresEventStore(DataSource dataSource, ProvisionEventStoreRequest request) {
+    private JdbcEventStoreContext createPostgresEventStore(DataSource dataSource, ProvisionCommand command) {
         var jdbi = Jdbi.create(dataSource);
-        PgEventStoreStatements statements = new PgEventStoreStatements(request.getEsid());
+        PgEventStoreStatements statements = new PgEventStoreStatements(command.esid());
         var eventStore = new JdbcEventStore(
                 jdbi,
                 statements,
@@ -102,7 +102,7 @@ public class EventStoreFactory {
         );
         var liveService = new PgLiveEventsService(
                 dataSource,
-                request.getEsid() + "_live",
+                command.esid() + "_live",
                 eventStore,
                 scheduler
         );

@@ -1,4 +1,4 @@
-package io.mubel.server.mubelserver.eventstore;
+package io.mubel.server.eventstore;
 
 import org.springframework.stereotype.Component;
 

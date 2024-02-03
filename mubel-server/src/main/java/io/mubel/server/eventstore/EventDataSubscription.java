@@ -1,4 +1,4 @@
-package io.mubel.server.mubelserver.eventstore;
+package io.mubel.server.eventstore;
 
 import io.mubel.api.grpc.EventData;
 import io.mubel.api.grpc.SubscribeRequest;

@@ -12,9 +12,9 @@ import reactor.core.scheduler.Scheduler;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public abstract class AbstractLiveEventsService implements LiveEventsService {
+public abstract class JdbcLiveEventsService implements LiveEventsService {
 
-    private static final Logger LOG = LoggerFactory.getLogger(AbstractLiveEventsService.class);
+    private static final Logger LOG = LoggerFactory.getLogger(JdbcLiveEventsService.class);
     private Flux<EventData> liveEvents;
 
     private final AtomicBoolean shouldRun = new AtomicBoolean(true);
@@ -27,7 +27,7 @@ public abstract class AbstractLiveEventsService implements LiveEventsService {
 
     private final JdbcEventStore eventStore;
 
-    public AbstractLiveEventsService(JdbcEventStore eventStore, Scheduler scheduler) {
+    public JdbcLiveEventsService(JdbcEventStore eventStore, Scheduler scheduler) {
         this.eventStore = eventStore;
         this.scheduler = scheduler;
     }

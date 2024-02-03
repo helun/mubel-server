@@ -20,3 +20,9 @@ CREATE TABLE job_status
     problem_status smallint,
     problem_detail TEXT
 );
+
+create table event_store_alias
+(
+    esid  VARCHAR(255) PRIMARY KEY,
+    alias VARCHAR(255) NOT NULL
+);

@@ -1,12 +1,15 @@
-package io.mubel.server.mubelserver.eventstore;
+package io.mubel.server.eventstore;
 
 import io.mubel.api.grpc.JobState;
 import io.mubel.api.grpc.JobStatus;
 import io.mubel.api.grpc.ProblemDetail;
-import io.mubel.server.mubelserver.Providers;
+import io.mubel.server.Providers;
+import io.mubel.server.spi.EventStoreContext;
 import io.mubel.server.spi.eventstore.EventStoreState;
 import io.mubel.server.spi.exceptions.ResourceConflictException;
 import io.mubel.server.spi.exceptions.ResourceNotFoundException;
+import io.mubel.server.spi.messages.EventStoreEventEnvelope;
+import io.mubel.server.spi.messages.EventStoreEvents;
 import io.mubel.server.spi.model.DropEventStoreCommand;
 import io.mubel.server.spi.model.ProvisionCommand;
 import io.mubel.server.spi.model.SpiEventStoreDetails;
@@ -84,7 +87,14 @@ public class ProvisionService {
         final var details = saveInitialProvisionState(command, backend);
         provider.provision(command);
         saveFinalProvisionState(details, job);
+        var context = provider.openEventStore(details.esid());
+        publishOpen(context);
         return CompletableFuture.completedFuture(null);
+    }
+
+    private void publishOpen(EventStoreContext context) {
+        var event = new EventStoreEvents.EventStoreOpened(context.esid(), context);
+        publisher.publishEvent(new EventStoreEventEnvelope(this, event));
     }
 
     private void checkProvisionPrerequisites(ProvisionCommand request) {

@@ -1,4 +1,4 @@
-package io.mubel.server.mubelserver.jobs;
+package io.mubel.server.jobs;
 
 import io.mubel.api.grpc.JobStatus;
 import io.mubel.server.spi.systemdb.JobStatusRepository;

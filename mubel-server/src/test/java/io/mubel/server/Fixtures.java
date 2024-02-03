@@ -1,4 +1,4 @@
-package io.mubel.server.mubelserver;
+package io.mubel.server;
 
 import com.google.protobuf.ByteString;
 import io.mubel.api.grpc.EventData;

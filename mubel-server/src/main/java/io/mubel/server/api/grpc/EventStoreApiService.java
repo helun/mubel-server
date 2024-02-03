@@ -1,13 +1,13 @@
-package io.mubel.server.mubelserver.api.grpc;
+package io.mubel.server.api.grpc;
 
 import io.grpc.stub.StreamObserver;
 import io.mubel.api.grpc.*;
-import io.mubel.server.mubelserver.eventstore.EventStoreManager;
-import io.mubel.server.mubelserver.eventstore.ProvisionService;
-import io.mubel.server.mubelserver.jobs.BackgroundJobService;
-import io.mubel.server.mubelserver.support.IdGenerator;
+import io.mubel.server.eventstore.EventStoreManager;
+import io.mubel.server.eventstore.ProvisionService;
+import io.mubel.server.jobs.BackgroundJobService;
 import io.mubel.server.spi.model.DropEventStoreCommand;
 import io.mubel.server.spi.model.ProvisionCommand;
+import io.mubel.server.support.IdGenerator;
 import org.springframework.stereotype.Service;
 
 import java.util.function.BiFunction;

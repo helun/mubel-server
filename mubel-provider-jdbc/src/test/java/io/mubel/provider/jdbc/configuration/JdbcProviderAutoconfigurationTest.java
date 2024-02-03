@@ -1,11 +1,12 @@
 package io.mubel.provider.jdbc.configuration;
 
-import io.mubel.api.grpc.ProvisionEventStoreRequest;
+import io.mubel.api.grpc.DataFormat;
 import io.mubel.provider.jdbc.JdbcProviderTestApplication;
 import io.mubel.provider.jdbc.eventstore.EventStoreFactory;
 import io.mubel.provider.jdbc.eventstore.configuration.JdbcProviderProperties;
 import io.mubel.provider.jdbc.support.JdbcDataSources;
 import io.mubel.server.spi.model.BackendType;
+import io.mubel.server.spi.model.ProvisionCommand;
 import io.mubel.server.spi.systemdb.EventStoreDetailsRepository;
 import io.mubel.server.spi.systemdb.JobStatusRepository;
 import org.junit.jupiter.api.Test;
@@ -18,6 +19,8 @@ import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -75,11 +78,13 @@ class JdbcProviderAutoconfigurationTest {
 
     @Test
     void createPostgresEventStore() {
-        var request = ProvisionEventStoreRequest.newBuilder()
-                .setEsid("test-esid")
-                .setStorageBackendName("postgres")
-                .build();
-        var context = eventStoreFactory.create(request);
+        var command = new ProvisionCommand(
+                UUID.randomUUID().toString(),
+                "test-esid",
+                DataFormat.JSON,
+                "postgres"
+        );
+        var context = eventStoreFactory.create(command);
         assertThat(context).isNotNull();
         assertThat(context.eventStore()).isNotNull();
         assertThat(context.provisioner()).isNotNull();

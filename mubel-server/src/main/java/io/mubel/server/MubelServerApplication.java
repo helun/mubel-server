@@ -1,4 +1,4 @@
-package io.mubel.server.mubelserver;
+package io.mubel.server;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

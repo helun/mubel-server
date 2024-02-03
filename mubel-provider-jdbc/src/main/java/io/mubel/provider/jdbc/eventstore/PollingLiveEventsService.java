@@ -7,7 +7,7 @@ import reactor.core.scheduler.Scheduler;
 
 import java.time.Duration;
 
-public class PollingLiveEventsService extends AbstractLiveEventsService {
+public class PollingLiveEventsService extends JdbcLiveEventsService {
 
     private final int pollingIntervalMs;
 

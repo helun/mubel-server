@@ -1,9 +1,9 @@
-package io.mubel.server.mubelserver.eventstore;
+package io.mubel.server.eventstore;
 
 import io.mubel.api.grpc.EventData;
 import io.mubel.api.grpc.EventStoreDetails;
 import io.mubel.api.grpc.SubscribeRequest;
-import io.mubel.server.mubelserver.Providers;
+import io.mubel.server.Providers;
 import io.mubel.server.spi.EventStoreContext;
 import io.mubel.server.spi.Provider;
 import io.mubel.server.spi.eventstore.EventStore;

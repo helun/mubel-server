@@ -1,4 +1,4 @@
-package io.mubel.server.mubelserver.support;
+package io.mubel.server.support;
 
 import org.springframework.stereotype.Component;
 

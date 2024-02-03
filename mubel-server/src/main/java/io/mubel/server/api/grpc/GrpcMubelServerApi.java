@@ -1,4 +1,4 @@
-package io.mubel.server.mubelserver.api.grpc;
+package io.mubel.server.api.grpc;
 
 import io.grpc.stub.StreamObserver;
 import io.mubel.api.grpc.*;

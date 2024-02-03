@@ -2,6 +2,8 @@ package io.mubel.provider.jdbc.eventstore.configuration;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import io.mubel.provider.jdbc.JdbcProvider;
+import io.mubel.provider.jdbc.eventstore.EventStoreFactory;
 import io.mubel.provider.jdbc.support.JdbcDataSources;
 import io.mubel.provider.jdbc.support.MubelDataSource;
 import io.mubel.provider.jdbc.systemdb.EventStoreDetailsRowMapper;
@@ -10,6 +12,7 @@ import io.mubel.provider.jdbc.systemdb.JdbcJobStatusRepository;
 import io.mubel.provider.jdbc.systemdb.JobStatusRowMapper;
 import io.mubel.provider.jdbc.systemdb.pg.PgEventStoreDetailsStatements;
 import io.mubel.provider.jdbc.systemdb.pg.PgJobStatusStatements;
+import io.mubel.server.spi.Provider;
 import io.mubel.server.spi.systemdb.EventStoreDetailsRepository;
 import io.mubel.server.spi.systemdb.JobStatusRepository;
 import org.jdbi.v3.core.Jdbi;
@@ -94,4 +97,24 @@ public class JdbcProviderAutoconfiguration {
                     throw new IllegalArgumentException("No job status repository implementation for backend type: " + systemDbDataSource.backendType());
         };
     }
+
+    @Bean
+    public EventStoreFactory jdbcEventStoreFactory(
+            JdbcDataSources dataSources,
+            JdbcProviderProperties properties,
+            Scheduler scheduler
+    ) {
+        return new EventStoreFactory(dataSources, properties, scheduler);
+    }
+
+    @Bean
+    public Provider jdbcProvider(
+            EventStoreFactory eventStoreFactory,
+            JdbcDataSources dataSources) {
+        return new JdbcProvider(
+                eventStoreFactory,
+                dataSources
+        );
+    }
+
 }

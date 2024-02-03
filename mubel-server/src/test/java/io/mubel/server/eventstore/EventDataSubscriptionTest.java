@@ -1,8 +1,8 @@
-package io.mubel.server.mubelserver.eventstore;
+package io.mubel.server.eventstore;
 
 import io.mubel.api.grpc.EventData;
 import io.mubel.api.grpc.SubscribeRequest;
-import io.mubel.server.mubelserver.Fixtures;
+import io.mubel.server.Fixtures;
 import io.mubel.server.spi.EventStoreContext;
 import io.mubel.server.spi.eventstore.EventStore;
 import io.mubel.server.spi.eventstore.LiveEventsService;
@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Queue;
 
 class EventDataSubscriptionTest {
-    
+
     TestReplayService replayService = new TestReplayService();
 
     TestLiveEventsService liveEventsService = new TestLiveEventsService();

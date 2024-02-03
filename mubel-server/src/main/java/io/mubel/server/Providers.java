@@ -1,4 +1,4 @@
-package io.mubel.server.mubelserver;
+package io.mubel.server;
 
 import io.mubel.server.spi.Provider;
 import io.mubel.server.spi.exceptions.ResourceNotFoundException;

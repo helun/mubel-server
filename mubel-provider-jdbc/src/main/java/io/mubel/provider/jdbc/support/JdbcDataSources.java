@@ -14,4 +14,8 @@ public class JdbcDataSources {
     public MubelDataSource get(String name) {
         return dataSources.get(name);
     }
+
+    public Map<String, MubelDataSource> getAll() {
+        return dataSources;
+    }
 }
