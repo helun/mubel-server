@@ -1,5 +1,6 @@
 package io.mubel.server.eventstore;
 
+import io.grpc.Status;
 import io.mubel.api.grpc.JobState;
 import io.mubel.api.grpc.JobStatus;
 import io.mubel.api.grpc.ProblemDetail;
@@ -65,7 +66,7 @@ public class ProvisionService {
     private void publishFailed(RuntimeException e, JobStatus job) {
         var problem = ProblemDetail.newBuilder()
                 .setType("https://mubel.io/problems/provision-failed")
-                .setStatus(500)
+                .setStatus(Status.INTERNAL.getCode().value())
                 .setTitle("Provision failed")
                 .setDetail(e.getMessage())
                 .build();
@@ -80,6 +81,7 @@ public class ProvisionService {
     }
 
     private CompletableFuture<Void> doProvision(ProvisionCommand command, JobStatus job) {
+        LOG.info("provisioning event store: {}", command.esid());
         checkProvisionPrerequisites(command);
         final var provider = providers.findBackend(command.storageBackendName())
                 .orElseThrow(() -> new ResourceNotFoundException("No provider for backend name: " + command.storageBackendName()));
@@ -89,6 +91,7 @@ public class ProvisionService {
         saveFinalProvisionState(details, job);
         var context = provider.openEventStore(details.esid());
         publishOpen(context);
+        LOG.info("provisioned event store: {}", command.esid());
         return CompletableFuture.completedFuture(null);
     }
 
@@ -127,6 +130,7 @@ public class ProvisionService {
 
     @Async
     public Future<Void> drop(DropEventStoreCommand command) {
+        LOG.info("dropping event store: {}", command.esid());
         final var job = JobStatus.newBuilder()
                 .setCreatedAt(System.currentTimeMillis())
                 .setJobId(command.jobId())
@@ -140,6 +144,7 @@ public class ProvisionService {
             final var provider = providers.get(details.provider());
             provider.drop(command);
             publishCompleted(job);
+            LOG.info("dropped event store: {}", command.esid());
             return CompletableFuture.completedFuture(null);
         } catch (RuntimeException e) {
             publishFailed(e, job);

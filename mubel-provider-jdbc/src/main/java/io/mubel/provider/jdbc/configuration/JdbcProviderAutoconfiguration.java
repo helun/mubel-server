@@ -107,6 +107,12 @@ public class JdbcProviderAutoconfiguration {
     }
 
     @Bean
+    @ConditionalOnBean(name = "systemDbDataSource")
+    public SystemDbMigrator systemDbMigrator(JdbcProviderProperties properties) {
+        return new SystemDbMigrator(properties);
+    }
+    
+    @Bean
     public EventStoreFactory jdbcEventStoreFactory(
             JdbcDataSources dataSources,
             JdbcProviderProperties properties,

@@ -1,0 +1,16 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="MubelServer" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+    <option name="ACTIVE_PROFILES" value="jdbc-provider" />
+    <module name="mubel-server" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="io.mubel.server.MubelServerApplication" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="io.mubel.server.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

@@ -54,12 +54,17 @@ public class TestSubscriber<E> {
     }
 
     public TestSubscriber<E> awaitCount(int count) {
-        await().untilAsserted(() -> {
-            if (values.size() == count) {
-                return;
-            }
-            throw new AssertionError("DataStream has " + values.size() + " values, expected " + count);
-        });
+        await().failFast(() -> {
+                    if (values.size() > count) {
+                        throw new AssertionError("DataStream has " + values.size() + " values, expected " + count);
+                    }
+                })
+                .untilAsserted(() -> {
+                    if (values.size() == count) {
+                        return;
+                    }
+                    throw new AssertionError("DataStream has " + values.size() + " values, expected " + count);
+                });
         return this;
     }
 

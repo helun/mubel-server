@@ -6,10 +6,14 @@ import io.mubel.provider.jdbc.support.RepositoryStatements;
 import io.mubel.server.spi.systemdb.JobStatusRepository;
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.core.statement.Update;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Types;
 
 public class JdbcJobStatusRepository extends CrudRepositoryBase<JobStatus> implements JobStatusRepository {
+
+    private static final Logger LOG = LoggerFactory.getLogger(JdbcJobStatusRepository.class);
 
     public JdbcJobStatusRepository(Jdbi jdbi, RepositoryStatements statements) {
         super(jdbi, statements, JobStatus.class);
@@ -17,6 +21,7 @@ public class JdbcJobStatusRepository extends CrudRepositoryBase<JobStatus> imple
 
     @Override
     protected Update bind(JobStatus value, Update update) {
+        LOG.debug("Binding job status: {}", value);
         var binded = update.bind(0, value.getJobId())
                 .bind(1, value.getState())
                 .bind(2, value.getDescription())

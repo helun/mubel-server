@@ -58,6 +58,8 @@
         <module>mubel-provider-jdbc</module>
         <module>mubel-schema</module>
         <module>provider-test-base</module>
+        <module>mubel-server-test</module>
+        <module>mubel-provider-inmemory</module>
     </modules>
 
 </project>

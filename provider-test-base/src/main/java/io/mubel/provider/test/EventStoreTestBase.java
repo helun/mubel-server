@@ -160,16 +160,16 @@ public abstract class EventStoreTestBase {
     @Test
     void getPages() {
         var events = Fixtures.createEventInputs(25);
-        var streamId = events.get(0).getStreamId();
+        var streamId = events.getFirst().getStreamId();
         var request = AppendRequest.newBuilder()
-                .setEsid(esid().toString())
+                .setEsid(esid())
                 .addAllEvent(events)
                 .build();
         eventStore.append(request);
         var pageSize = 10;
         var page0 = GetEventsRequest.newBuilder()
                 .setStreamId(streamId)
-                .setEsid(esid().toString())
+                .setEsid(esid())
                 .setSize(pageSize)
                 .build();
         var p0Response = eventStore.get(page0);

@@ -1,0 +1,5 @@
+mubel.provider.inmemory.enabled=true
+# backends
+mubel.provider.inmemory.backends[0]=in-memory
+# systemdb
+mubel.provider.inmemory.systemdb=true

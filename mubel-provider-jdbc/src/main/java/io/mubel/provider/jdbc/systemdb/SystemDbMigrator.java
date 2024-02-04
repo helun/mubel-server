@@ -5,10 +5,11 @@ import io.mubel.server.spi.exceptions.MubelConfigurationException;
 import org.flywaydb.core.Flyway;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.InitializingBean;
 
 import static java.util.Objects.requireNonNull;
 
-public class SystemDbMigrator {
+public class SystemDbMigrator implements InitializingBean {
 
     private static final Logger LOG = LoggerFactory.getLogger(SystemDbMigrator.class);
     public static final String PG_PATH = "systemdb/pg";
@@ -67,5 +68,10 @@ public class SystemDbMigrator {
 
         flyway.migrate();
         LOG.info("Migration complete");
+    }
+
+    @Override
+    public void afterPropertiesSet() {
+        migrate();
     }
 }

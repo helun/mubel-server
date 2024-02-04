@@ -30,8 +30,7 @@ public abstract class ReplayServiceTestBase {
                 .setEsid(esid())
                 .build();
         TestSubscriber<EventData> testSubscriber = new TestSubscriber<>(service().replay(request));
-
-
+        
         testSubscriber
                 .awaitDone()
                 .assertComplete()
@@ -63,9 +62,9 @@ public abstract class ReplayServiceTestBase {
     void emptyReplay() {
         var request = SubscribeRequest
                 .newBuilder()
-                .setEsid(esid().toString())
+                .setEsid(esid())
                 .build();
-        TestSubscriber<EventData> testSubscriber = new TestSubscriber(service().replay(request));
+        TestSubscriber<EventData> testSubscriber = new TestSubscriber<>(service().replay(request));
         testSubscriber.awaitDone();
         testSubscriber.assertNoErrors();
         testSubscriber.assertNoValues();

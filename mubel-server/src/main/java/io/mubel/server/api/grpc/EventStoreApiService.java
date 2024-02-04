@@ -8,6 +8,8 @@ import io.mubel.server.jobs.BackgroundJobService;
 import io.mubel.server.spi.model.DropEventStoreCommand;
 import io.mubel.server.spi.model.ProvisionCommand;
 import io.mubel.server.support.IdGenerator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.function.BiFunction;
@@ -15,6 +17,7 @@ import java.util.function.BiFunction;
 @Service
 public class EventStoreApiService {
 
+    private static final Logger LOG = LoggerFactory.getLogger(EventStoreApiService.class);
     private static final AppendAck APPEND_ACK = AppendAck.newBuilder().build();
     private final EventStoreManager eventStoreManager;
     private final ProvisionService provisionService;
@@ -94,10 +97,12 @@ public class EventStoreApiService {
 
         final var details = eventStoreManager.getAllEventStoreDetails();
 
-        responseObserver.onNext(ServiceInfoResponse.newBuilder()
+        ServiceInfoResponse response = ServiceInfoResponse.newBuilder()
                 .addAllEventStore(details)
                 .addAllStorageBackend(backends)
-                .build());
+                .build();
+        LOG.debug("server info: {}", response);
+        responseObserver.onNext(response);
         responseObserver.onCompleted();
     }
 }
