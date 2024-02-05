@@ -8,6 +8,8 @@ import io.mubel.server.spi.eventstore.EventStore;
 import io.mubel.server.spi.eventstore.LiveEventsService;
 import io.mubel.server.spi.eventstore.ReplayService;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
@@ -16,6 +18,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class EventDataSubscriptionTest {
 
     TestReplayService replayService = new TestReplayService();
@@ -32,7 +35,7 @@ class EventDataSubscriptionTest {
     }
 
     @Test
-    void baseCase() {
+    void seamless_transition_from_replay_to_live_events() {
         long fromSequenceNo = 99;
         Fixtures.initSequenceNo(fromSequenceNo + 1);
         var request = SubscribeRequest
@@ -60,7 +63,7 @@ class EventDataSubscriptionTest {
     }
 
     @Test
-    void shouldRetrySequenceNoOutOfSyncException() {
+    void replay_restarts_if_a_sequence_number_is_missing() {
         long fromSequenceNo = 99;
         Fixtures.initSequenceNo(fromSequenceNo + 1);
         var request = SubscribeRequest
