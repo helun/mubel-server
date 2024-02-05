@@ -6,11 +6,14 @@ import io.mubel.server.spi.exceptions.ResourceNotFoundException;
 import io.mubel.server.spi.model.BackendType;
 import io.mubel.server.spi.model.SpiEventStoreDetails;
 import io.mubel.server.spi.systemdb.EventStoreDetailsRepository;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 public abstract class EventStoreDetailsRepositoryTestBase {
 
     protected abstract EventStoreDetailsRepository repository();
@@ -26,7 +29,7 @@ public abstract class EventStoreDetailsRepositoryTestBase {
     }
 
     @Test
-    void upsert() {
+    void when_details_exists_then_put_updates_existing_entity() {
         var details = getSpiEventStoreDetails();
         assertThat(repository().put(details)).isEqualTo(details);
         var droppedDetails = details.withState(EventStoreState.DROPPING);
@@ -35,7 +38,7 @@ public abstract class EventStoreDetailsRepositoryTestBase {
     }
 
     @Test
-    void getNonExistingShouldThrow() {
+    void get_non_existing_throws_ResourceNotFoundException() {
         assertThatThrownBy(() -> repository().get("missing"))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
