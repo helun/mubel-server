@@ -5,6 +5,8 @@ import io.mubel.api.grpc.JobStatus;
 import io.mubel.api.grpc.ProblemDetail;
 import io.mubel.server.spi.exceptions.ResourceNotFoundException;
 import io.mubel.server.spi.systemdb.JobStatusRepository;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
@@ -12,12 +14,13 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 public abstract class JobStatusRepositoryTestBase {
 
     protected abstract JobStatusRepository repository();
 
     @Test
-    void crud() {
+    void crud_without_problem_detail() {
         var jobStatus = getJobStatus();
         assertThat(repository().put(jobStatus)).isEqualTo(jobStatus);
         assertThat(repository().exists(jobStatus.getJobId())).isTrue();
@@ -27,14 +30,14 @@ public abstract class JobStatusRepositoryTestBase {
     }
 
     @Test
-    void crudWithProblem() {
+    void crud_with_problem_detail() {
         var jobStatus = getJobStatusWithProblem();
         assertThat(repository().put(jobStatus)).isEqualTo(jobStatus);
         assertThat(repository().get(jobStatus.getJobId())).isEqualTo(jobStatus);
     }
 
     @Test
-    void upsert() {
+    void when_entity_exists_then_put_updates_existing_entity() {
         var jobStatus = getJobStatus();
         assertThat(repository().put(jobStatus)).isEqualTo(jobStatus);
         var updatedJobStatus = jobStatus.toBuilder()
@@ -46,7 +49,7 @@ public abstract class JobStatusRepositoryTestBase {
     }
 
     @Test
-    void getNonExistingShouldThrow() {
+    void get_non_existing_throws_ResourceNotFoundException() {
         assertThatThrownBy(() -> repository().get("missing"))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
