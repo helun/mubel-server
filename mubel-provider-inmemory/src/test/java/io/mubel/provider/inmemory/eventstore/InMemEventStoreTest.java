@@ -1,6 +1,6 @@
 package io.mubel.provider.inmemory.eventstore;
 
-import io.mubel.provider.test.EventStoreTestBase;
+import io.mubel.provider.test.eventstore.EventStoreTestBase;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 

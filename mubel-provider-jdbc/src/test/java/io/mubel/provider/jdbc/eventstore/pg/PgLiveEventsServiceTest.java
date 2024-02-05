@@ -3,7 +3,7 @@ package io.mubel.provider.jdbc.eventstore.pg;
 import io.mubel.provider.jdbc.Containers;
 import io.mubel.provider.jdbc.eventstore.JdbcEventStore;
 import io.mubel.provider.jdbc.eventstore.JdbcEventStoreProvisioner;
-import io.mubel.provider.test.LiveEventsServiceTestBase;
+import io.mubel.provider.test.eventstore.LiveEventsServiceTestBase;
 import io.mubel.server.spi.eventstore.EventStore;
 import io.mubel.server.spi.eventstore.LiveEventsService;
 import org.jdbi.v3.core.Jdbi;
@@ -20,7 +20,7 @@ import java.util.concurrent.Executors;
 class PgLiveEventsServiceTest extends LiveEventsServiceTestBase {
 
     @Container
-    static PostgreSQLContainer container = Containers.postgreSQLContainer();
+    static PostgreSQLContainer<?> container = Containers.postgreSQLContainer();
 
     static EventStore eventStore;
 

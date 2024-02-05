@@ -1,11 +1,15 @@
-package io.mubel.provider.test;
+package io.mubel.provider.test.eventstore;
 
 import io.mubel.api.grpc.AppendRequest;
 import io.mubel.api.grpc.EventData;
 import io.mubel.api.grpc.GetEventsRequest;
 import io.mubel.api.grpc.SubscribeRequest;
+import io.mubel.provider.test.Fixtures;
+import io.mubel.provider.test.TestSubscriber;
 import io.mubel.server.spi.eventstore.EventStore;
 import io.mubel.server.spi.eventstore.ReplayService;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
@@ -13,6 +17,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 public abstract class ReplayServiceTestBase {
 
     protected abstract String esid();
@@ -22,7 +27,7 @@ public abstract class ReplayServiceTestBase {
     protected abstract ReplayService service();
 
     @RepeatedTest(9)
-    void replay() {
+    void replay_are_streamed_in_order() {
         int count = 256;
         setupEvents(count);
         var request = SubscribeRequest
@@ -30,7 +35,7 @@ public abstract class ReplayServiceTestBase {
                 .setEsid(esid())
                 .build();
         TestSubscriber<EventData> testSubscriber = new TestSubscriber<>(service().replay(request));
-        
+
         testSubscriber
                 .awaitDone()
                 .assertComplete()
@@ -38,7 +43,7 @@ public abstract class ReplayServiceTestBase {
     }
 
     @Test
-    void replayFromSequenceNo() {
+    void replaying_from_sequence_no_returns_events_starting_from_specified_sequence_exclusive() {
         int count = 10;
         var events = setupEvents(count);
         var middle = events.get(4);
@@ -59,7 +64,7 @@ public abstract class ReplayServiceTestBase {
     }
 
     @Test
-    void emptyReplay() {
+    void replaying_an_empty_store_ends_without_events_or_errors() {
         var request = SubscribeRequest
                 .newBuilder()
                 .setEsid(esid())

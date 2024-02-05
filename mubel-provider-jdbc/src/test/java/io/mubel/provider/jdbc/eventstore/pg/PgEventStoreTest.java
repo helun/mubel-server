@@ -3,7 +3,7 @@ package io.mubel.provider.jdbc.eventstore.pg;
 import io.mubel.provider.jdbc.Containers;
 import io.mubel.provider.jdbc.eventstore.JdbcEventStore;
 import io.mubel.provider.jdbc.eventstore.JdbcEventStoreProvisioner;
-import io.mubel.provider.test.EventStoreTestBase;
+import io.mubel.provider.test.eventstore.EventStoreTestBase;
 import org.jdbi.v3.core.Jdbi;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -15,7 +15,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 public class PgEventStoreTest extends EventStoreTestBase {
 
     @Container
-    static PostgreSQLContainer container = Containers.postgreSQLContainer();
+    static PostgreSQLContainer<?> container = Containers.postgreSQLContainer();
 
     @BeforeAll
     static void setup() {

@@ -4,7 +4,7 @@ import io.mubel.provider.jdbc.Containers;
 import io.mubel.provider.jdbc.eventstore.JdbcEventStore;
 import io.mubel.provider.jdbc.eventstore.JdbcEventStoreProvisioner;
 import io.mubel.provider.jdbc.eventstore.JdbcReplayService;
-import io.mubel.provider.test.ReplayServiceTestBase;
+import io.mubel.provider.test.eventstore.ReplayServiceTestBase;
 import io.mubel.server.spi.eventstore.EventStore;
 import io.mubel.server.spi.eventstore.ReplayService;
 import org.jdbi.v3.core.Jdbi;

@@ -4,7 +4,7 @@ import io.mubel.provider.jdbc.Containers;
 import io.mubel.provider.jdbc.eventstore.JdbcEventStore;
 import io.mubel.provider.jdbc.eventstore.JdbcEventStoreProvisioner;
 import io.mubel.provider.jdbc.eventstore.PollingLiveEventsService;
-import io.mubel.provider.test.LiveEventsServiceTestBase;
+import io.mubel.provider.test.eventstore.LiveEventsServiceTestBase;
 import io.mubel.server.spi.eventstore.EventStore;
 import io.mubel.server.spi.eventstore.LiveEventsService;
 import org.jdbi.v3.core.Jdbi;
@@ -20,7 +20,7 @@ import java.util.concurrent.Executors;
 public class MysqlLiveEventsServiceTest extends LiveEventsServiceTestBase {
 
     @Container
-    static JdbcDatabaseContainer container = Containers.mySqlContainer();
+    static JdbcDatabaseContainer<?> container = Containers.mySqlContainer();
 
     static JdbcEventStore eventStore;
 

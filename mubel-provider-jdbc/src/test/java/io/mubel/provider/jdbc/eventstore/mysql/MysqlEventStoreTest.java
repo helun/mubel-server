@@ -3,7 +3,7 @@ package io.mubel.provider.jdbc.eventstore.mysql;
 import io.mubel.provider.jdbc.Containers;
 import io.mubel.provider.jdbc.eventstore.JdbcEventStore;
 import io.mubel.provider.jdbc.eventstore.JdbcEventStoreProvisioner;
-import io.mubel.provider.test.EventStoreTestBase;
+import io.mubel.provider.test.eventstore.EventStoreTestBase;
 import org.jdbi.v3.core.Jdbi;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -15,7 +15,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 public class MysqlEventStoreTest extends EventStoreTestBase {
 
     @Container
-    static JdbcDatabaseContainer container = Containers.mySqlContainer();
+    static JdbcDatabaseContainer<?> container = Containers.mySqlContainer();
 
     @BeforeAll
     static void setup() {

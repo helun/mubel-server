@@ -1,7 +1,7 @@
 package io.mubel.provider.inmemory.eventstore;
 
 import io.mubel.api.grpc.DataFormat;
-import io.mubel.provider.test.LiveEventsServiceTestBase;
+import io.mubel.provider.test.eventstore.LiveEventsServiceTestBase;
 import io.mubel.server.spi.eventstore.EventStore;
 import io.mubel.server.spi.eventstore.LiveEventsService;
 import io.mubel.server.spi.model.ProvisionCommand;
@@ -26,7 +26,7 @@ public class InMemLiveServiceTest extends LiveEventsServiceTestBase {
                 DataFormat.JSON,
                 "in-memory"
         ));
-        eventStore = (InMemEventStore) eventStores.create(details);
+        eventStore = eventStores.create(details);
     }
 
     @AfterEach
