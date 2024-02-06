@@ -47,7 +47,7 @@ public class ProvisionService {
     }
 
     @Async
-    public Future<Void> provision(ProvisionCommand command) {
+    public CompletableFuture<Void> provision(ProvisionCommand command) {
         final var job = JobStatus.newBuilder()
                 .setJobId(command.jobId())
                 .setDescription("Provision event store %s".formatted(command.esid()))
@@ -59,7 +59,10 @@ public class ProvisionService {
             return doProvision(command, job);
         } catch (RuntimeException e) {
             publishFailed(e, job);
-            throw e;
+            return CompletableFuture.failedFuture(e);
+        } catch (Exception e) {
+            publishFailed(new RuntimeException(e), job);
+            return CompletableFuture.failedFuture(e);
         }
     }
 

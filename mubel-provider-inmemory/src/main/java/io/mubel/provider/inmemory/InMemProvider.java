@@ -14,7 +14,7 @@ import java.util.Set;
 public class InMemProvider implements Provider {
 
     public static final String PROVIDER_NAME = "inmemory";
-    
+
     private final InMemEventStores eventStores;
     private final InMemReplayService replayService;
 
@@ -25,7 +25,7 @@ public class InMemProvider implements Provider {
 
     @Override
     public String name() {
-        return "null";
+        return PROVIDER_NAME;
     }
 
     @Override

@@ -50,7 +50,15 @@ public class EventStoreApiService {
                 request.getDataFormat(),
                 request.getStorageBackendName()
         );
-        provisionService.provision(command);
+        provisionService.provision(command)
+                .handleAsync((ignored, err) -> {
+                    if (err != null) {
+                        LOG.error("provision failed: {}", err.getMessage(), err);
+                    } else {
+                        LOG.info("provision succeeded: {}", command);
+                    }
+                    return null;
+                });
         jobService.awaitJobStatus(command.jobId())
                 .handle(replyWithJobStatus(responseObserver));
     }
