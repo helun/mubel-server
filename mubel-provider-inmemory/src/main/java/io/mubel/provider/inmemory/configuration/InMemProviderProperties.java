@@ -34,7 +34,7 @@ public class InMemProviderProperties {
         return systemDb;
     }
 
-    public void setSystemDb(boolean systemDb) {
+    public void setSystemDb(Boolean systemDb) {
         this.systemDb = systemDb;
     }
 }

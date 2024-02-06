@@ -9,12 +9,10 @@ import io.mubel.provider.jdbc.support.JdbcDataSources;
 import io.mubel.server.spi.exceptions.ResourceNotFoundException;
 import io.mubel.server.spi.model.ProvisionCommand;
 import org.jdbi.v3.core.Jdbi;
-import org.springframework.stereotype.Service;
 import reactor.core.scheduler.Scheduler;
 
 import javax.sql.DataSource;
 
-@Service
 public class EventStoreFactory {
 
     private final JdbcDataSources dataSources;

@@ -35,7 +35,7 @@ public class InMemAutoConfiguration {
 
     @Bean
     @ConditionalOnBean(name = "inmemProvider")
-    @ConditionalOnProperty(prefix = "mubel.provider.inmemory", name = "systemdb", havingValue = "true")
+    @ConditionalOnProperty(prefix = "mubel.provider.inmemory", name = "system-db", havingValue = "true")
     @ConditionalOnMissingBean(EventStoreDetailsRepository.class)
     public EventStoreDetailsRepository inmemEventStoreDetailsRepository() {
         return new InMemEventStoreDetailsRepository();
@@ -43,7 +43,7 @@ public class InMemAutoConfiguration {
 
     @Bean
     @ConditionalOnBean(name = "inmemProvider")
-    @ConditionalOnProperty(prefix = "mubel.provider.inmemory", name = "systemdb", havingValue = "true")
+    @ConditionalOnProperty(prefix = "mubel.provider.inmemory", name = "system-db", havingValue = "true")
     @ConditionalOnMissingBean(JobStatusRepository.class)
     public JobStatusRepository inmemJobStatusRepository() {
         return new InMemJobStatusRepository();
@@ -51,9 +51,10 @@ public class InMemAutoConfiguration {
 
     @Bean
     @ConditionalOnBean(name = "inmemProvider")
-    @ConditionalOnProperty(prefix = "mubel.provider.inmemory", name = "systemdb", havingValue = "true")
+    @ConditionalOnProperty(prefix = "mubel.provider.inmemory", name = "system-db", havingValue = "true")
     @ConditionalOnMissingBean(EventStoreAliasRepository.class)
     public EventStoreAliasRepository inmemEventStoreAliasRepository() {
         return new InMemEventStoreAliasRepository();
     }
+
 }

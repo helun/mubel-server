@@ -2,6 +2,7 @@ package io.mubel.provider.jdbc.configuration;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -9,7 +10,7 @@ import java.util.Optional;
 public class JdbcProviderProperties {
 
     private boolean enabled = true;
-    private List<DataSourceProperties> datasources;
+    private List<DataSourceProperties> datasources = new ArrayList<>();
 
     private List<BackendProperties> backends;
 
