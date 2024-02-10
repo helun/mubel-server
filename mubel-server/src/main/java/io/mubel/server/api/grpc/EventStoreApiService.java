@@ -37,6 +37,7 @@ public class EventStoreApiService {
     }
 
     public void append(AppendRequest request, StreamObserver<AppendAck> responseObserver) {
+        Validator.validate(request);
         eventStoreManager.resolveEventStore(request.getEsid())
                 .append(request);
         responseObserver.onNext(APPEND_ACK);
@@ -77,9 +78,10 @@ public class EventStoreApiService {
     }
 
     public void drop(DropEventStoreRequest request, StreamObserver<JobStatus> responseObserver) {
+        var validated = Validator.validate(request);
         var command = new DropEventStoreCommand(
                 idGenerator.generate(),
-                request.getEsid()
+                validated.getEsid()
         );
         provisionService.drop(command);
         jobService.awaitJobStatus(command.jobId())
@@ -87,8 +89,9 @@ public class EventStoreApiService {
     }
 
     public void get(GetEventsRequest request, StreamObserver<GetEventsResponse> responseObserver) {
-        final var result = eventStoreManager.resolveEventStore(request.getEsid())
-                .get(request);
+        final var validated = Validator.validate(request);
+        final var result = eventStoreManager.resolveEventStore(validated.getEsid())
+                .get(validated);
         responseObserver.onNext(result);
         responseObserver.onCompleted();
     }

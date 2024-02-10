@@ -21,7 +21,6 @@ public class JdbcJobStatusRepository extends CrudRepositoryBase<JobStatus> imple
 
     @Override
     protected Update bind(JobStatus value, Update update) {
-        LOG.debug("Binding job status: {}", value);
         var binded = update.bind(0, value.getJobId())
                 .bind(1, value.getState())
                 .bind(2, value.getDescription())

@@ -116,7 +116,7 @@ message GetEventStoreSummaryRequest {
 }
 
 message EventStoreSummary {
-  EventStoreDetails eventStore = 1;
+  string esid = 1;
   uint64 eventCount = 2;
   uint64 streamCount = 3;
 }

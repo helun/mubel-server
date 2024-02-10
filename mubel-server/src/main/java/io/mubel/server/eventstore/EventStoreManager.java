@@ -96,6 +96,11 @@ public class EventStoreManager implements ApplicationListener<EventStoreEventEnv
     }
 
     public EventStoreSummary getSummary(GetEventStoreSummaryRequest request) {
-        return eventStores.get(request.getEsid()).eventStore().summary();
+        return eventStores.get(request.getEsid())
+                .eventStore()
+                .summary()
+                .toBuilder()
+                .setEsid(request.getEsid())
+                .build();
     }
 }

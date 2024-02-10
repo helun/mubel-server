@@ -10,7 +10,7 @@ import io.mubel.schema.ValidationContext;
 public class AppendRequestSchema extends ObjectSchema<AppendRequest> {
 
     private final static StringSchema esidSchema = CommonSchema.esidSchema.required();
-    private final static ListSchema<EventDataInput> eventsSchema = ListSchema.builder("events")
+    private final static ListSchema<EventDataInput> eventsSchema = ListSchema.<EventDataInput>builder("events")
             .elements(EventDataInputSchema.get())
             .required();
 
