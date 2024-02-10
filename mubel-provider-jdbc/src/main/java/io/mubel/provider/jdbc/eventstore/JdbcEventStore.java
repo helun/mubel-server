@@ -1,9 +1,6 @@
 package io.mubel.provider.jdbc.eventstore;
 
-import io.mubel.api.grpc.AppendRequest;
-import io.mubel.api.grpc.EventData;
-import io.mubel.api.grpc.GetEventsRequest;
-import io.mubel.api.grpc.GetEventsResponse;
+import io.mubel.api.grpc.*;
 import io.mubel.server.spi.eventstore.EventStore;
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.core.statement.Query;
@@ -94,6 +91,16 @@ public class JdbcEventStore implements EventStore {
     @Override
     public void truncate() {
         jdbi.useHandle(h -> statements.truncate().forEach(h::execute));
+    }
+
+    @Override
+    public EventStoreSummary summary() {
+        return jdbi.withHandle(h -> h.createQuery(statements.summarySql())
+                .map((rs, ctx) -> EventStoreSummary.newBuilder()
+                        .setEventCount(rs.getLong("event_count"))
+                        .setStreamCount(rs.getLong("stream_count"))
+                        .build())
+                .one());
     }
 
     public long maxSequenceNo() {

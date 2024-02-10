@@ -182,6 +182,27 @@ public abstract class EventStoreTestBase {
         }
     }
 
+    @Nested
+    class Summary {
+
+        @Test
+        void returns_event_count_and_stream_count() {
+            var count = 10;
+            appendEvents(count);
+            var summary = eventStore.summary();
+            assertThat(summary.getEventCount()).isEqualTo(count);
+            assertThat(summary.getStreamCount()).isEqualTo(1);
+        }
+
+        @Test
+        void returns_zero_for_empty_event_store() {
+            var summary = eventStore.summary();
+            assertThat(summary.getEventCount()).isZero();
+            assertThat(summary.getStreamCount()).isZero();
+        }
+
+    }
+
     private String appendEvents(int count) {
         var events = Fixtures.createEventInputs(count);
         var request = AppendRequest.newBuilder()

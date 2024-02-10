@@ -109,7 +109,7 @@ public class ProvisionService {
         }
         final var backend = request.storageBackendName();
         if (!providers.backendExists(backend)) {
-            throw new ResourceNotFoundException("storage backend %s is not configured".formatted(backend));
+            throw new ResourceNotFoundException("storage backend '%s' is not configured".formatted(backend));
         }
     }
 

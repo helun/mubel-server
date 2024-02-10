@@ -44,11 +44,12 @@ public class EventStoreApiService {
     }
 
     public void provision(ProvisionEventStoreRequest request, StreamObserver<JobStatus> responseObserver) {
+        var validated = Validator.validate(request);
         var command = new ProvisionCommand(
                 idGenerator.generate(),
-                request.getEsid(),
-                request.getDataFormat(),
-                request.getStorageBackendName()
+                validated.getEsid(),
+                validated.getDataFormat(),
+                validated.getStorageBackendName()
         );
         provisionService.provision(command)
                 .handleAsync((ignored, err) -> {
@@ -111,6 +112,12 @@ public class EventStoreApiService {
                 .build();
         LOG.debug("server info: {}", response);
         responseObserver.onNext(response);
+        responseObserver.onCompleted();
+    }
+
+    public void eventStoreSummary(GetEventStoreSummaryRequest request, StreamObserver<EventStoreSummary> responseObserver) {
+        final var summary = eventStoreManager.getSummary(request);
+        responseObserver.onNext(summary);
         responseObserver.onCompleted();
     }
 }

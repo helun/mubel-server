@@ -1,9 +1,6 @@
 package io.mubel.provider.inmemory.eventstore;
 
-import io.mubel.api.grpc.AppendRequest;
-import io.mubel.api.grpc.EventData;
-import io.mubel.api.grpc.GetEventsRequest;
-import io.mubel.api.grpc.GetEventsResponse;
+import io.mubel.api.grpc.*;
 import io.mubel.server.spi.ErrorMessages;
 import io.mubel.server.spi.eventstore.EventStore;
 import io.mubel.server.spi.eventstore.LiveEventsService;
@@ -123,5 +120,13 @@ public class InMemEventStore implements EventStore, LiveEventsService {
 
         }
         return liveEvents.share();
+    }
+
+    @Override
+    public EventStoreSummary summary() {
+        return EventStoreSummary.newBuilder()
+                .setEventCount(events.size())
+                .setStreamCount(events.stream().map(EventData::getStreamId).distinct().count())
+                .build();
     }
 }

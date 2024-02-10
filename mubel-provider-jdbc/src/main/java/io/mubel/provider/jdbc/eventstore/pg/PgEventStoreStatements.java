@@ -181,6 +181,16 @@ public class PgEventStoreStatements extends EventStoreStatements {
     }
 
     @Override
+    public String summarySql() {
+        return """
+                SELECT
+                  COUNT(id) AS event_count,
+                  COUNT(DISTINCT stream_id) AS stream_count
+                FROM %s.events
+                """.formatted(eventStoreName());
+    }
+
+    @Override
     public Object convertUUID(String value) {
         return UUID.fromString(value);
     }

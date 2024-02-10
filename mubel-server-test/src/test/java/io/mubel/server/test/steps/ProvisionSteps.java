@@ -30,11 +30,12 @@ public class ProvisionSteps {
     @Given("a event store of type {string} called {string} is provisioned")
     public void provision(String type, String alias) {
         final var dbAlias = findDbOfType(type, client.getServerInfo());
-        final var esid = dbAlias + ":ft_" + Instant.now().getEpochSecond();
+        final var esid = "ft_" + Instant.now().getEpochSecond();
         final var request = ProvisionEventStoreRequest.newBuilder()
                 .setEsid(esid)
                 .setDataFormat(DataFormat.JSON)
                 .setWaitForOpen(true)
+                .setStorageBackendName(dbAlias)
                 .build();
         final var details = client.provision(request).join();
         context.addEventStore(alias, details.getEsid());

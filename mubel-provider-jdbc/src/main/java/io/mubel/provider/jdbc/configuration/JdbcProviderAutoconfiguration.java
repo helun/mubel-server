@@ -125,10 +125,12 @@ public class JdbcProviderAutoconfiguration {
     @ConditionalOnBean(EventStoreFactory.class)
     public Provider jdbcProvider(
             EventStoreFactory eventStoreFactory,
-            JdbcDataSources dataSources) {
+            JdbcDataSources dataSources,
+            JdbcProviderProperties properties) {
         return new JdbcProvider(
                 eventStoreFactory,
-                dataSources
+                dataSources,
+                properties
         );
     }
 

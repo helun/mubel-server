@@ -66,6 +66,8 @@ public abstract class EventStoreStatements {
 
     public abstract List<String> truncate();
 
+    public abstract String summarySql();
+
     public Object convertUUID(String value) {
         return value;
     }

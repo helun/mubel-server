@@ -1,8 +1,6 @@
 package io.mubel.server.eventstore;
 
-import io.mubel.api.grpc.EventData;
-import io.mubel.api.grpc.EventStoreDetails;
-import io.mubel.api.grpc.SubscribeRequest;
+import io.mubel.api.grpc.*;
 import io.mubel.server.Providers;
 import io.mubel.server.spi.EventStoreContext;
 import io.mubel.server.spi.Provider;
@@ -95,5 +93,9 @@ public class EventStoreManager implements ApplicationListener<EventStoreEventEnv
 
     public Flux<EventData> subscribe(SubscribeRequest request) {
         return EventDataSubscription.setupSubscription(request, getEventStoreContext(request.getEsid()));
+    }
+
+    public EventStoreSummary getSummary(GetEventStoreSummaryRequest request) {
+        return eventStores.get(request.getEsid()).eventStore().summary();
     }
 }

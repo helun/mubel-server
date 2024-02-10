@@ -15,9 +15,9 @@ class ConstrainsTest {
 
     @ParameterizedTest
     @ValueSource(strings = {
-            "abc:cde",
-            "mem-db:ft_1698075106",
-            "myns-123:q123"
+            "abc_cde",
+            "mem-db_ft_1698075106",
+            "myns-123"
     })
     void validEsids(String input) {
         assertThat(ESID_PATTERN.matcher(input).matches())

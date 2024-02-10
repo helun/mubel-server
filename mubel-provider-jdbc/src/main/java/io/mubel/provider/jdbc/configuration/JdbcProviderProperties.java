@@ -54,6 +54,12 @@ public class JdbcProviderProperties {
                 .findFirst();
     }
 
+    public Optional<BackendProperties> findBackend(String storageBackendName) {
+        return backends.stream()
+                .filter(backendProperties -> backendProperties.getName().equals(storageBackendName))
+                .findFirst();
+    }
+
     public static class DataSourceProperties extends org.springframework.boot.autoconfigure.jdbc.DataSourceProperties {
         private int maximumPoolSize;
         private long connectionTimeout;

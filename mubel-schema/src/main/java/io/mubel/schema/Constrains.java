@@ -3,7 +3,7 @@ package io.mubel.schema;
 public class Constrains {
 
     public final static String SAFE_STRING_PTRN = "^[A-Za-z0-9_-]+$";
-    public final static String ESID_PTRN = "^[a-z][a-z0-9_-]{1,99}:[a-z][a-z0-9_-]{1,99}$";
+    public final static String ESID_PTRN = "^[a-z][a-z0-9_-]{1,99}$";
     public final static String PROPERTY_PATH_PTRN = "^([A-Za-z0-9_-])+(\\.?([A-Za-z0-9_-])*)*$";
     public final static String EVENT_TYPE_PTRN = "^([A-Za-z0-9_-])+([\\.:]?([A-Za-z0-9_-])*[\\$\\+]*([A-Za-z0-9_-])*)*$";
 

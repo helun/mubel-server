@@ -1,9 +1,6 @@
 package io.mubel.server.spi.eventstore;
 
-import io.mubel.api.grpc.AppendRequest;
-import io.mubel.api.grpc.EventData;
-import io.mubel.api.grpc.GetEventsRequest;
-import io.mubel.api.grpc.GetEventsResponse;
+import io.mubel.api.grpc.*;
 
 import java.util.List;
 
@@ -13,5 +10,7 @@ public interface EventStore {
     GetEventsResponse get(GetEventsRequest request);
 
     void truncate();
+
+    EventStoreSummary summary();
 
 }

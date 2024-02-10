@@ -140,4 +140,14 @@ public class MysqlEventStoreStatements extends EventStoreStatements {
     public String getSequenceNoSql() {
         return "SELECT max(seq_id) AS seq_id FROM %s_all_events_subscription".formatted(eventStoreName());
     }
+
+    @Override
+    public String summarySql() {
+        return """
+                SELECT
+                  COUNT(id) AS event_count,
+                  COUNT(DISTINCT stream_id) AS stream_count
+                FROM %s_events
+                """.formatted(eventStoreName());
+    }
 }

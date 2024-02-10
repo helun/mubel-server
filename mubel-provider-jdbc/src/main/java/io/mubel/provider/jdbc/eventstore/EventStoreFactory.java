@@ -41,9 +41,7 @@ public class EventStoreFactory {
 
     private JdbcProviderProperties.BackendProperties resolveBackendProperties(ProvisionCommand request) {
         var backendName = request.storageBackendName();
-        return properties.getBackends().stream()
-                .filter(backendProperties -> backendProperties.getName().equals(backendName))
-                .findFirst()
+        return properties.findBackend(backendName)
                 .orElseThrow(() -> new ResourceNotFoundException("No backend found for name: " + backendName));
     }
 
