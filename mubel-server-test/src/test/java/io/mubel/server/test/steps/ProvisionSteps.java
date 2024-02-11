@@ -8,7 +8,7 @@ import io.mubel.server.test.ScenarioContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Instant;
+import java.util.UUID;
 
 public class ProvisionSteps {
 
@@ -30,7 +30,7 @@ public class ProvisionSteps {
     @Given("a event store of type {string} called {string} is provisioned")
     public void provision(String type, String alias) {
         final var dbAlias = findDbOfType(type, client.getServerInfo());
-        final var esid = "ft_" + Instant.now().getEpochSecond();
+        final var esid = "ft_" + UUID.randomUUID().toString().replaceAll("-", "");
         final var request = ProvisionEventStoreRequest.newBuilder()
                 .setEsid(esid)
                 .setDataFormat(DataFormat.JSON)
