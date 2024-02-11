@@ -26,6 +26,7 @@ public final class EventDataSubscription {
     ) {
         LOG.debug("Setting up subscription for {} from sequence no {}", request.getEsid(), request.getFromSequenceNo());
         final var lastSequenceNo = new AtomicLong(request.getFromSequenceNo());
+        LOG.debug("Last sequence no: {}", lastSequenceNo.get());
         return context.replayService()
                 .replay(request)
                 .concatWith(context.liveEventsService().liveEvents())

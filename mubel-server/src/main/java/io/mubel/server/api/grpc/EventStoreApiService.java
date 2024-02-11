@@ -38,6 +38,7 @@ public class EventStoreApiService {
 
     public void append(AppendRequest request, StreamObserver<AppendAck> responseObserver) {
         Validator.validate(request);
+        LOG.debug("append: {} events", request.getEventCount());
         eventStoreManager.resolveEventStore(request.getEsid())
                 .append(request);
         responseObserver.onNext(APPEND_ACK);

@@ -138,7 +138,7 @@ public class MysqlEventStoreStatements extends EventStoreStatements {
 
     @Override
     public String getSequenceNoSql() {
-        return "SELECT max(seq_id) AS seq_id FROM %s_all_events_subscription".formatted(eventStoreName());
+        return "SELECT COALESCE(max(seq_id), 0) AS seq_id FROM %s_all_events_subscription".formatted(eventStoreName());
     }
 
     @Override

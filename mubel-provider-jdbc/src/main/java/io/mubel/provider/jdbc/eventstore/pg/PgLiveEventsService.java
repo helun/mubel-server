@@ -16,7 +16,6 @@ public class PgLiveEventsService extends JdbcLiveEventsService {
     private static final Logger LOG = LoggerFactory.getLogger(PgLiveEventsService.class);
     private final String channelName;
     private final DataSource dataSource;
-    private PgConnection pgConnection;
     private java.sql.Connection connection;
 
     public PgLiveEventsService(
@@ -33,7 +32,7 @@ public class PgLiveEventsService extends JdbcLiveEventsService {
     protected void run(FluxSink<EventData> emitter) throws Exception {
         try (var connection = dataSource.getConnection()) {
             this.connection = connection;
-            this.pgConnection = connection.unwrap(PgConnection.class);
+            PgConnection pgConnection = connection.unwrap(PgConnection.class);
             try (final var stmt = pgConnection.createStatement()) {
                 LOG.info("Listening to channel {}", channelName);
                 stmt.execute("LISTEN " + channelName);

@@ -7,9 +7,12 @@ import io.mubel.provider.test.eventstore.EventStoreTestBase;
 import org.jdbi.v3.core.Jdbi;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 @Testcontainers
 public class PgEventStoreTest extends EventStoreTestBase {
@@ -27,6 +30,12 @@ public class PgEventStoreTest extends EventStoreTestBase {
                 new PgEventStoreStatements(eventStoreName),
                 new PgErrorMapper()
         ).init();
+    }
+
+    @Test
+    void maxSequenceNo_returns_0_when_no_events_exists() {
+        assertThat(((JdbcEventStore) eventStore).maxSequenceNo())
+                .isEqualTo(0);
     }
 
     @AfterEach

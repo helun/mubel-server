@@ -1,53 +1,48 @@
 package io.mubel.server.test;
 
 import io.mubel.api.grpc.EventData;
-import io.mubel.client.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class TestSubscription {
 
     private static final Logger LOG = LoggerFactory.getLogger(TestSubscription.class);
     private final List<EventData> received = new ArrayList<>();
     private final List<EventData> receivedOutOfOrder = new ArrayList<>();
-    private final Future<?> subscriptionFuture;
+
+    private final AtomicBoolean completed = new AtomicBoolean(false);
+
+    private final AtomicReference<Throwable> error = new AtomicReference<>();
 
     private EventData lastReceived;
 
 
     private final ExecutorService subscriberExecutor = Executors.newSingleThreadExecutor();
 
-    public static TestSubscription create(Subscription<EventData> subscription) {
+    public static TestSubscription create(Flux<EventData> subscription) {
         return new TestSubscription(subscription);
     }
 
-    public TestSubscription(final Subscription<EventData> subscription) {
-        subscriptionFuture = subscriberExecutor.submit(() -> {
-            try {
-                LOG.info("Starting subscription");
-                var event = subscription.next();
-                while (event != null) {
-                    addEvent(event);
-                    event = subscription.next();
-                }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            } catch (Throwable t) {
-                LOG.error("Error in subscription", t);
-                throw t;
-            } finally {
-                LOG.info("Subscription stopped");
-            }
-        });
+    public TestSubscription(final Flux<EventData> subscription) {
+        subscription
+                .doOnSubscribe(sub -> LOG.info("Starting subscription"))
+                .doOnComplete(() -> LOG.info("Subscription completed"))
+                .subscribeOn(Schedulers.single())
+                .subscribe(this::addEvent, err -> LOG.error("Error in subscription", err));
     }
 
     public boolean isCompleted() {
-        return subscriptionFuture.isDone();
+        return completed.get();
     }
 
     public void addEvent(EventData e) {
@@ -62,17 +57,7 @@ public class TestSubscription {
     }
 
     public Optional<Throwable> error() {
-        try {
-            subscriptionFuture.get(10, TimeUnit.SECONDS);
-            return Optional.empty();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
-        } catch (ExecutionException e) {
-            return Optional.of(e.getCause());
-        } catch (TimeoutException e) {
-            throw new RuntimeException(e);
-        }
+        return Optional.ofNullable(error.get());
     }
 
     public int count() {
@@ -88,8 +73,8 @@ public class TestSubscription {
     }
 
     public void throwIfError() throws Throwable {
-        if (subscriptionFuture.state() == Future.State.FAILED) {
-            throw subscriptionFuture.exceptionNow();
+        if (error.get() != null) {
+            throw error.get();
         }
     }
 }

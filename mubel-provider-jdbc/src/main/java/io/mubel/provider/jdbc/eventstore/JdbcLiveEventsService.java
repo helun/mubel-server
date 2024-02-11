@@ -15,14 +15,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public abstract class JdbcLiveEventsService implements LiveEventsService {
 
     private static final Logger LOG = LoggerFactory.getLogger(JdbcLiveEventsService.class);
-    private Flux<EventData> liveEvents;
+    private volatile Flux<EventData> liveEvents;
 
     private final AtomicBoolean shouldRun = new AtomicBoolean(true);
     private final Scheduler scheduler;
 
     protected long lastSequenceNo = -1;
 
-    private GetEventsRequest.Builder requestBuilder = GetEventsRequest.newBuilder()
+    private final GetEventsRequest.Builder requestBuilder = GetEventsRequest.newBuilder()
             .setSize(256);
 
     private final JdbcEventStore eventStore;
@@ -36,15 +36,22 @@ public abstract class JdbcLiveEventsService implements LiveEventsService {
         if (liveEvents == null) {
             synchronized (this) {
                 if (liveEvents == null) {
-                    this.liveEvents = initLiveEvents();
+                    liveEvents = initLiveEvents()
+                            .doOnSubscribe(sub -> LOG.debug("Subscribed to live events"))
+                            .doOnCancel(() -> LOG.debug("Unsubscribed from live events"))
+                            .doOnError(e -> LOG.error("Error in live events service", e))
+                            .doOnComplete(() -> LOG.debug("Live events service completed"))
+                            .doFinally(signal -> LOG.debug("Live events service terminated"));
                 }
             }
         }
+        LOG.debug("Returning live events flux");
         return liveEvents.share()
                 .onBackpressureError();
     }
 
     private Flux<EventData> initLiveEvents() {
+        LOG.debug("Initializing live events service");
         return Flux.<EventData>push(emitter -> {
                     initLastSequenceNo();
                     while (shouldRun()) {

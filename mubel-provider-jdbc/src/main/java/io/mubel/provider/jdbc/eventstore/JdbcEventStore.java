@@ -104,7 +104,10 @@ public class JdbcEventStore implements EventStore {
     }
 
     public long maxSequenceNo() {
-        return jdbi.withHandle(h -> h.createQuery(statements.getSequenceNoSql()).mapTo(Long.class).one());
+        return jdbi.withHandle(h -> h.createQuery(statements.getSequenceNoSql())
+                .mapTo(Long.class)
+                .one()
+        );
     }
 
     private GetEventsResponse getByStream(GetEventsRequest request) {

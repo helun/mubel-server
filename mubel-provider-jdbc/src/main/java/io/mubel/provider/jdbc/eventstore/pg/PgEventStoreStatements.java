@@ -69,23 +69,7 @@ public class PgEventStoreStatements extends EventStoreStatements {
               meta_data
               ) VALUES (?,?,?,?,?,?,?)
             """;
-
-    private static final String INSERT_EVENT_TYPE_SQL_TPL = """
-            INSERT INTO %s.event_types(type) VALUES (?)
-            ON CONFLICT(type) DO NOTHING
-            """;
-
-    private static final String SELECT_ALL_EVENT_TYPES_SQL_TPL = """
-            SELECT id, type FROM %s.event_types
-            """;
-
-    private static final String INSERT_STREAM_SQL_TPL = """
-            INSERT INTO %s.streams(stream_id) VALUES (?)
-            """;
-
-    private static final String SELECT_STREAM_IDS_SQL_TPL = """
-            SELECT stream_id, id FROM %s.streams WHERE stream_id IN (<streamIds>)
-            """;
+    
     private static final String SELECT_EVENTS_TPL = """
             SELECT
               e.id,
@@ -177,7 +161,7 @@ public class PgEventStoreStatements extends EventStoreStatements {
 
     @Override
     public String getSequenceNoSql() {
-        return "SELECT max(seq_id) AS seq_id FROM %s.all_events_subscription".formatted(eventStoreName());
+        return "SELECT COALESCE(max(seq_id), 0) AS seq_id FROM %s.all_events_subscription".formatted(eventStoreName());
     }
 
     @Override
