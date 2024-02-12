@@ -52,6 +52,7 @@ public class ProvisionSteps {
                 ).join();
             } catch (Exception err) {
                 LOG.warn("failed to delete event store: {}", esid, err);
+                throw new RuntimeException(err);
             }
         });
     }

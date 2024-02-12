@@ -143,9 +143,11 @@ public class ProvisionService {
         publisher.publishEvent(job);
         try {
             final var esid = aliases.getEventStoreId(command.esid());
-            final var details = detailsRepository.get(esid);
+            final var details = setDroppingState(esid);
             final var provider = providers.get(details.provider());
+            provider.closeEventStore(esid);
             provider.drop(command);
+            detailsRepository.remove(esid);
             publishCompleted(job);
             LOG.info("dropped event store: {}", command.esid());
             return CompletableFuture.completedFuture(null);
@@ -153,6 +155,13 @@ public class ProvisionService {
             publishFailed(e, job);
             throw e;
         }
+    }
+
+    private SpiEventStoreDetails setDroppingState(String esid) {
+        var details = detailsRepository.get(esid);
+        details.withState(EventStoreState.DROPPING);
+        details = detailsRepository.put(details);
+        return details;
     }
 
     private void publishCompleted(JobStatus job) {

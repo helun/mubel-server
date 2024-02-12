@@ -66,9 +66,8 @@ public class JdbcProvider implements Provider {
 
     @Override
     public void drop(DropEventStoreCommand command) {
-        contexts.get(command.esid())
-                .provisioner()
-                .drop(command);
+        var context = contexts.get(command.esid());
+        context.provisioner().drop(command);
     }
 
     @Override

@@ -9,10 +9,10 @@ public class MysqlEventStoreStatements extends EventStoreStatements {
 
     private static final List<String> DDL_TPL = List.of(
             """
-                            CREATE TABLE %1$s_request_log(
-                                id BINARY(16) NOT NULL PRIMARY KEY,
-                                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-                            );
+                    CREATE TABLE %1$s_request_log(
+                        id BINARY(16) NOT NULL PRIMARY KEY,
+                        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    );
                     """,
             """             
                     CREATE TABLE %1$s_events(
@@ -101,8 +101,7 @@ public class MysqlEventStoreStatements extends EventStoreStatements {
     );
 
     private static final List<String> DROP_SQL = List.of(
-            "DROP TABLE %1$s_events, %1$s_all_events_subscription, %1$s_request_log",
-            "DROP TRIGGER %1$s_insert_event_seq"
+            "DROP TABLE %1$s_events, %1$s_all_events_subscription, %1$s_request_log"
     );
 
     private static final String LOG_REQUEST_SQL_TPL = """

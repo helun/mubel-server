@@ -65,9 +65,8 @@ public class EventStoreFactory {
                 statements,
                 scheduler
         );
-        var liveService = new PgLiveEventsService(
-                dataSource,
-                request.esid() + "_live",
+        var liveService = new PollingLiveEventsService(
+                1000,
                 eventStore,
                 scheduler
         );
