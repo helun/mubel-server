@@ -7,7 +7,7 @@ import io.mubel.server.eventstore.ProvisionService;
 import io.mubel.server.jobs.BackgroundJobService;
 import io.mubel.server.spi.model.DropEventStoreCommand;
 import io.mubel.server.spi.model.ProvisionCommand;
-import io.mubel.server.support.IdGenerator;
+import io.mubel.server.spi.support.IdGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -48,7 +48,7 @@ public class EventStoreApiService {
     public void provision(ProvisionEventStoreRequest request, StreamObserver<JobStatus> responseObserver) {
         var validated = Validator.validate(request);
         var command = new ProvisionCommand(
-                idGenerator.generate(),
+                idGenerator.generateStringId(),
                 validated.getEsid(),
                 validated.getDataFormat(),
                 validated.getStorageBackendName()
@@ -81,7 +81,7 @@ public class EventStoreApiService {
     public void drop(DropEventStoreRequest request, StreamObserver<JobStatus> responseObserver) {
         var validated = Validator.validate(request);
         var command = new DropEventStoreCommand(
-                idGenerator.generate(),
+                idGenerator.generateStringId(),
                 validated.getEsid()
         );
         provisionService.drop(command);
