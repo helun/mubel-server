@@ -2,6 +2,7 @@ package io.mubel.provider.inmemory.queue;
 
 import io.mubel.server.spi.queue.*;
 import io.mubel.server.spi.support.IdGenerator;
+import io.mubel.server.spi.support.TimeBudget;
 import reactor.core.publisher.Flux;
 
 import java.util.Map;
@@ -45,18 +46,16 @@ public class InMemMessageQueueService implements MessageQueueService {
     @Override
     public Flux<Message> receive(ReceiveRequest request) {
         return Flux.create(sink -> {
-            long timeBudget = request.timeout().toMillis();
+            var timeBudget = new TimeBudget(request.timeout());
             var queue = resolveQueue(request.queueName());
             var visibilityTimeout = this.config.getQueue(request.queueName()).visibilityTimeout().toMillis();
             try {
-                while (timeBudget > 0) {
-                    var start = System.currentTimeMillis();
-                    var delayedMessage = queue.poll(timeBudget, TimeUnit.MILLISECONDS);
+                while (timeBudget.hasTimeRemaining()) {
+                    var delayedMessage = queue.poll(timeBudget.remainingTimeMs(), TimeUnit.MILLISECONDS);
                     if (delayedMessage != null) {
                         sink.next(delayedMessage.message());
                         scheduleInFlightTimeout(delayedMessage.message(), visibilityTimeout);
                     }
-                    timeBudget -= System.currentTimeMillis() - start;
                 }
                 sink.complete();
             } catch (InterruptedException e) {
