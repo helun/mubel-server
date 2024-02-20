@@ -3,6 +3,8 @@ package io.mubel.provider.inmemory.queue;
 import io.mubel.server.spi.queue.*;
 import io.mubel.server.spi.support.IdGenerator;
 import io.mubel.server.spi.support.TimeBudget;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 
 import java.util.Map;
@@ -10,6 +12,8 @@ import java.util.UUID;
 import java.util.concurrent.*;
 
 public class InMemMessageQueueService implements MessageQueueService {
+
+    private static final Logger LOG = LoggerFactory.getLogger(InMemMessageQueueService.class);
     private final Map<String, DelayQueue<DelayedMessage>> queues = new ConcurrentHashMap<>();
     private final Map<UUID, ScheduledFuture<?>> messagesInFlight = new ConcurrentHashMap<>();
 
@@ -50,11 +54,16 @@ public class InMemMessageQueueService implements MessageQueueService {
             var queue = resolveQueue(request.queueName());
             var visibilityTimeout = this.config.getQueue(request.queueName()).visibilityTimeout().toMillis();
             try {
-                while (timeBudget.hasTimeRemaining()) {
+                int receivedCount = 0;
+                while (timeBudget.hasTimeRemaining()
+                        && receivedCount < request.maxMessages()
+                        && !sink.isCancelled()
+                ) {
                     var delayedMessage = queue.poll(timeBudget.remainingTimeMs(), TimeUnit.MILLISECONDS);
                     if (delayedMessage != null) {
                         sink.next(delayedMessage.message());
                         scheduleInFlightTimeout(delayedMessage.message(), visibilityTimeout);
+                        receivedCount++;
                     }
                 }
                 sink.complete();
@@ -87,13 +96,20 @@ public class InMemMessageQueueService implements MessageQueueService {
         }
     }
 
+    public void reset() {
+        messagesInFlight.forEach((key, value) -> value.cancel(false));
+        messagesInFlight.clear();
+        queues.clear();
+    }
+
     private static class DelayedMessage implements Delayed {
         private final Message message;
-        private final long delay;
+
+        private final long startTime;
 
         public DelayedMessage(Message message, long delay) {
             this.message = message;
-            this.delay = delay;
+            startTime = System.currentTimeMillis() + delay;
         }
 
         public Message message() {
@@ -102,12 +118,13 @@ public class InMemMessageQueueService implements MessageQueueService {
 
         @Override
         public long getDelay(TimeUnit unit) {
-            return unit.convert(delay, TimeUnit.MILLISECONDS);
+            long diff = startTime - System.currentTimeMillis();
+            return unit.convert(diff, TimeUnit.MILLISECONDS);
         }
 
         @Override
         public int compareTo(Delayed o) {
-            return Long.compare(delay, ((DelayedMessage) o).delay);
+            return Long.compare(startTime - System.currentTimeMillis(), o.getDelay(TimeUnit.MILLISECONDS));
         }
     }
 }
