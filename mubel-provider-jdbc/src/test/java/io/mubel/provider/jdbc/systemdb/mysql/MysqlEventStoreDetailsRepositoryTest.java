@@ -15,7 +15,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers
 public class MysqlEventStoreDetailsRepositoryTest extends EventStoreDetailsRepositoryTestBase {
     @Container
-    static JdbcDatabaseContainer container = Containers.mySqlContainer();
+    static JdbcDatabaseContainer<?> container = Containers.mySqlContainer();
 
     static JdbcEventStoreDetailsRepository repository;
 

@@ -7,26 +7,18 @@ import io.mubel.server.spi.queue.QueueConfigurations;
 import io.mubel.server.spi.support.IdGenerator;
 import org.junit.jupiter.api.AfterEach;
 
-import java.time.Duration;
 import java.util.List;
 
 class InMemMessageQueueServiceTest extends MessageQueueServiceTestBase {
 
-    Duration visibilityTimeout = Duration.ofSeconds(1);
-
     InMemMessageQueueService service = new InMemMessageQueueService(new IdGenerator() {
     }, new QueueConfigurations(List.of(
-            new QueueConfiguration(QUEUE_NAME, visibilityTimeout)
+            new QueueConfiguration(QUEUE_NAME, VISIBILITY_TIMEOUT)
     )));
 
     @AfterEach
     void tearDown() {
         service.reset();
-    }
-
-    @Override
-    protected Duration getVisibilityTimeout() {
-        return visibilityTimeout;
     }
 
     @Override

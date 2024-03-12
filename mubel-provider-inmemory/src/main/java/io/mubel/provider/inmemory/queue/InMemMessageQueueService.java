@@ -3,17 +3,15 @@ package io.mubel.provider.inmemory.queue;
 import io.mubel.server.spi.queue.*;
 import io.mubel.server.spi.support.IdGenerator;
 import io.mubel.server.spi.support.TimeBudget;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.*;
 
 public class InMemMessageQueueService implements MessageQueueService {
 
-    private static final Logger LOG = LoggerFactory.getLogger(InMemMessageQueueService.class);
     private final Map<String, DelayQueue<DelayedMessage>> queues = new ConcurrentHashMap<>();
     private final Map<UUID, ScheduledFuture<?>> messagesInFlight = new ConcurrentHashMap<>();
 
@@ -83,7 +81,7 @@ public class InMemMessageQueueService implements MessageQueueService {
     }
 
     @Override
-    public void delete(Iterable<UUID> uuids) {
+    public void delete(Collection<UUID> uuids) {
         for (var uuid : uuids) {
             var future = messagesInFlight.remove(uuid);
             if (future != null) {

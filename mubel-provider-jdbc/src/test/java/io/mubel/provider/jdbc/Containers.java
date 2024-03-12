@@ -36,7 +36,8 @@ public final class Containers {
 
     public static DataSource dataSource(JdbcDatabaseContainer container) {
         HikariConfig config = new HikariConfig();
-        config.setJdbcUrl(container.getJdbcUrl());
+        var jdbcUrl = container.getJdbcUrl() + "?serverTimezone=UTC";
+        config.setJdbcUrl(jdbcUrl);
         config.setUsername(container.getUsername());
         config.setPassword(container.getPassword());
         config.setDriverClassName(container.getDriverClassName());

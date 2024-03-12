@@ -22,7 +22,7 @@ public abstract class MessageQueueServiceTestBase {
     public static final String TYPE = "test-type";
     public static final String PAYLOAD = "test-payload";
 
-    protected abstract Duration getVisibilityTimeout();
+    public static final Duration VISIBILITY_TIMEOUT = Duration.ofSeconds(3);
 
     protected abstract MessageQueueService service();
 
@@ -44,7 +44,7 @@ public abstract class MessageQueueServiceTestBase {
 
         assertReceived(message);
         long timeSinceSend = System.currentTimeMillis() - startTime;
-        Duration mustNotAppearDuration = getVisibilityTimeout().minusMillis(timeSinceSend);
+        Duration mustNotAppearDuration = VISIBILITY_TIMEOUT.minusMillis(timeSinceSend);
         assertDuring(mustNotAppearDuration, () -> {
             var shouldBeNull = queue.receive(new ReceiveRequest(QUEUE_NAME, mustNotAppearDuration))
                     .blockFirst();
@@ -54,7 +54,7 @@ public abstract class MessageQueueServiceTestBase {
         });
 
         await().untilAsserted(() -> {
-            var shouldReappear = queue.receive(new ReceiveRequest(QUEUE_NAME, getVisibilityTimeout().plusMillis(100)))
+            var shouldReappear = queue.receive(new ReceiveRequest(QUEUE_NAME, VISIBILITY_TIMEOUT.plusMillis(100)))
                     .blockFirst();
             assertThat(shouldReappear).isNotNull();
             assertThat(shouldReappear.messageId()).isEqualTo(message.messageId());
@@ -75,9 +75,9 @@ public abstract class MessageQueueServiceTestBase {
 
         queue.delete(List.of(message.messageId()));
 
-        sleep(getVisibilityTimeout().plusMillis(250));
+        sleep(VISIBILITY_TIMEOUT.plusMillis(250));
 
-        var message2 = queue.receive(new ReceiveRequest(QUEUE_NAME, getVisibilityTimeout().plusMillis(100)))
+        var message2 = queue.receive(new ReceiveRequest(QUEUE_NAME, VISIBILITY_TIMEOUT.plusMillis(100)))
                 .blockFirst();
         assertThat(message2).isNull();
     }
@@ -85,12 +85,16 @@ public abstract class MessageQueueServiceTestBase {
     @Test
     void messages_should_be_published_according_to_specified_delay() {
         var queue = service();
-        var sendRequest1 = getSendRequestWithDelay(Duration.ofSeconds(1));
-        var sendRequest2 = getSendRequestWithDelay(Duration.ofMillis(500));
+        var sendRequest1 = sendRequestBuilderWithDelay(Duration.ofSeconds(2))
+                .payload("2sec")
+                .build();
+        var sendRequest2 = sendRequestBuilderWithDelay(Duration.ofSeconds(1))
+                .payload("1sec")
+                .build();
 
-        var sendTime = System.currentTimeMillis();
-
+        var sendTime1 = System.currentTimeMillis();
         queue.send(sendRequest1);
+        var sendTime2 = System.currentTimeMillis();
         queue.send(sendRequest2);
 
         var request = new ReceiveRequest(QUEUE_NAME, Duration.ofSeconds(3), 2);
@@ -102,15 +106,18 @@ public abstract class MessageQueueServiceTestBase {
         assertThat(messages).hasSize(2);
 
         var message1 = messages.getFirst();
-        var delay1 = message1.receiveTime - sendTime;
+        assertThat(message1.payloadAsString()).isEqualTo("1sec");
+        var delay1 = message1.receiveTime - sendTime2;
         assertThat(delay1)
-                .as("message 2 with delay 500ms should be received first")
-                .isBetween(400L, 600L);
+                .as("message 2 with delay 1 sec should be received first")
+                .isBetween(900L, 1500L);
+
         var message2 = messages.get(1);
-        var delay2 = message2.receiveTime - sendTime;
+        assertThat(message2.payloadAsString()).isEqualTo("2sec");
+        var delay2 = message2.receiveTime - sendTime1;
         assertThat(delay2)
-                .as("message 2 with delay 1000ms should be received last")
-                .isBetween(900L, 1100L);
+                .as("message 1 with delay 2 sec should be received last")
+                .isBetween(1900L, 2500L);
     }
 
     @Test
@@ -131,6 +138,14 @@ public abstract class MessageQueueServiceTestBase {
                 .payload(PAYLOAD)
                 .delayMillis(delay.toMillis())
                 .build();
+    }
+
+    private static SendRequest.Builder sendRequestBuilderWithDelay(Duration delay) {
+        return SendRequest.builder()
+                .queueName(QUEUE_NAME)
+                .type(TYPE)
+                .payload(PAYLOAD)
+                .delayMillis(delay.toMillis());
     }
 
     private void sleep(Duration sleepTime) {
@@ -165,5 +180,10 @@ public abstract class MessageQueueServiceTestBase {
     }
 
     record RecordedMessage(Message message, long receiveTime) {
+
+        String payloadAsString() {
+            return new String(message.payload());
+        }
+
     }
 }

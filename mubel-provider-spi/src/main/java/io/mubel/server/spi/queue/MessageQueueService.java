@@ -2,6 +2,7 @@ package io.mubel.server.spi.queue;
 
 import reactor.core.publisher.Flux;
 
+import java.util.Collection;
 import java.util.UUID;
 
 public interface MessageQueueService {
@@ -12,5 +13,5 @@ public interface MessageQueueService {
 
     Flux<Message> receive(ReceiveRequest request);
 
-    void delete(Iterable<UUID> uuids);
+    void delete(Collection<UUID> uuids);
 }

@@ -6,6 +6,7 @@ import io.mubel.provider.jdbc.eventstore.pg.PgErrorMapper;
 import io.mubel.provider.jdbc.eventstore.pg.PgEventStoreStatements;
 import io.mubel.provider.jdbc.eventstore.pg.PgLiveEventsService;
 import io.mubel.provider.jdbc.support.JdbcDataSources;
+import io.mubel.provider.jdbc.support.mysql.MysqlJdbiFactory;
 import io.mubel.server.spi.exceptions.ResourceNotFoundException;
 import io.mubel.server.spi.model.ProvisionCommand;
 import org.jdbi.v3.core.Jdbi;
@@ -49,7 +50,7 @@ public class EventStoreFactory {
             DataSource dataSource,
             ProvisionCommand request
     ) {
-        var jdbi = Jdbi.create(dataSource);
+        var jdbi = MysqlJdbiFactory.create(dataSource);
         var statements = new MysqlEventStoreStatements(request.esid());
         var eventStore = new JdbcEventStore(
                 jdbi,
