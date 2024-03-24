@@ -2,6 +2,8 @@ package io.mubel.provider.jdbc.eventstore.mysql;
 
 import io.mubel.provider.jdbc.Containers;
 import io.mubel.provider.jdbc.eventstore.JdbcEventStoreProvisioner;
+import io.mubel.provider.jdbc.queue.mysql.MysqlMessageQueueStatements;
+import io.mubel.provider.jdbc.support.SqlStatements;
 import org.jdbi.v3.core.Jdbi;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.JdbcDatabaseContainer;
@@ -22,14 +24,27 @@ public class MysqlProvisionTest {
     void drop_removes_all_db_objects() {
         var dataSource = Containers.dataSource(container);
         String eventStoreName = "test_es";
-        MysqlEventStoreStatements statements = new MysqlEventStoreStatements(eventStoreName);
-        JdbcEventStoreProvisioner.provision(dataSource, statements);
+        var statements = new MysqlEventStoreStatements(eventStoreName);
+        var queueStatements = new MysqlMessageQueueStatements();
+        JdbcEventStoreProvisioner.provision(
+                dataSource,
+                SqlStatements.of(
+                        statements.ddl(),
+                        queueStatements.ddl()
+                )
+        );
         var jdbi = Jdbi.create(dataSource);
         var tableNames = getTableNames(jdbi);
         assertThat(tableNames)
-                .hasSize(3)
-                .allSatisfy(name -> assertThat(name).startsWith(eventStoreName));
-        JdbcEventStoreProvisioner.drop(dataSource, statements);
+                .hasSize(4);
+        
+        JdbcEventStoreProvisioner.drop(
+                dataSource,
+                SqlStatements.of(
+                        statements.dropSql(),
+                        queueStatements.dropSql()
+                )
+        );
         assertThat(getTableNames(jdbi)).isEmpty();
     }
 

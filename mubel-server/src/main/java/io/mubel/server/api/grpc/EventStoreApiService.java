@@ -124,4 +124,6 @@ public class EventStoreApiService {
         responseObserver.onNext(summary);
         responseObserver.onCompleted();
     }
+
+
 }

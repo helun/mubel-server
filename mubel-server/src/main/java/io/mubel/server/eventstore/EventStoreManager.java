@@ -103,4 +103,8 @@ public class EventStoreManager implements ApplicationListener<EventStoreEventEnv
                 .setEsid(request.getEsid())
                 .build();
     }
+
+    public Flux<TriggeredEvents> subscribeToScheduledEvents(ScheduledEventsSubscribeRequest request) {
+        return null;
+    }
 }

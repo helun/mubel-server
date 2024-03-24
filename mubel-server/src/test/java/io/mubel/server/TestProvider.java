@@ -4,12 +4,17 @@ import io.mubel.api.grpc.DataFormat;
 import io.mubel.provider.inmemory.eventstore.InMemEventStore;
 import io.mubel.provider.inmemory.eventstore.InMemEventStores;
 import io.mubel.provider.inmemory.eventstore.InMemReplayService;
+import io.mubel.provider.inmemory.queue.InMemMessageQueueService;
 import io.mubel.server.spi.EventStoreContext;
 import io.mubel.server.spi.Provider;
 import io.mubel.server.spi.eventstore.EventStoreState;
 import io.mubel.server.spi.exceptions.ResourceNotFoundException;
 import io.mubel.server.spi.model.*;
+import io.mubel.server.spi.queue.QueueConfiguration;
+import io.mubel.server.spi.queue.QueueConfigurations;
+import io.mubel.server.support.DefaultIdGenerator;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -23,7 +28,7 @@ public class TestProvider implements Provider {
     private final List<String> openEventStores = new ArrayList<>();
     private final List<String> closeEventStores = new ArrayList<>();
 
-    private Set<StorageBackendProperties> backends = Set.of(
+    private final Set<StorageBackendProperties> backends = Set.of(
             new StorageBackendProperties(TEST_BACKEND, BackendType.IN_MEMORY, "test-backend")
     );
 
@@ -67,11 +72,15 @@ public class TestProvider implements Provider {
                 DataFormat.JSON,
                 EventStoreState.PROVISIONED
         ));
+        InMemMessageQueueService messageQueueService = new InMemMessageQueueService(DefaultIdGenerator.defaultGenerator(), new QueueConfigurations(List.of(
+                new QueueConfiguration("scheduledEvents", Duration.ofSeconds(1))
+        )));
         return new EventStoreContext(
                 esid,
                 eventStore,
                 new InMemReplayService(eventStores),
-                eventStore
+                eventStore,
+                messageQueueService
         );
     }
 

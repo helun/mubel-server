@@ -2,10 +2,13 @@ package io.mubel.provider.inmemory.configuration;
 
 import io.mubel.provider.inmemory.InMemProvider;
 import io.mubel.provider.inmemory.eventstore.InMemEventStores;
+import io.mubel.provider.inmemory.queue.InMemMessageQueueService;
 import io.mubel.provider.inmemory.systemdb.InMemEventStoreAliasRepository;
 import io.mubel.provider.inmemory.systemdb.InMemEventStoreDetailsRepository;
 import io.mubel.provider.inmemory.systemdb.InMemJobStatusRepository;
 import io.mubel.server.spi.Provider;
+import io.mubel.server.spi.queue.QueueConfigurations;
+import io.mubel.server.spi.support.IdGenerator;
 import io.mubel.server.spi.systemdb.EventStoreAliasRepository;
 import io.mubel.server.spi.systemdb.EventStoreDetailsRepository;
 import io.mubel.server.spi.systemdb.JobStatusRepository;
@@ -29,8 +32,16 @@ public class InMemAutoConfiguration {
     }
 
     @Bean
-    public Provider inmemProvider(InMemEventStores eventStores) {
-        return new InMemProvider(eventStores);
+    public Provider inmemProvider(InMemEventStores eventStores, InMemMessageQueueService inMemMessageQueueService) {
+        return new InMemProvider(eventStores, inMemMessageQueueService);
+    }
+
+    @Bean
+    public InMemMessageQueueService inMemMessageQueueService(
+            IdGenerator idGenerator,
+            QueueConfigurations queueConfigurations
+    ) {
+        return new InMemMessageQueueService(idGenerator, queueConfigurations);
     }
 
     @Bean

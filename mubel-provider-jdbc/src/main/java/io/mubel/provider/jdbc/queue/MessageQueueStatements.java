@@ -6,6 +6,10 @@ public interface MessageQueueStatements {
 
     List<String> ddl();
 
+    default List<String> dropSql() {
+        return List.of("DROP TABLE IF EXISTS message_queue");
+    }
+
     String insert();
 
     default String delete() {
@@ -18,4 +22,5 @@ public interface MessageQueueStatements {
                 WHERE lock_expires_at <= CURRENT_TIMESTAMP
                 """;
     }
+
 }

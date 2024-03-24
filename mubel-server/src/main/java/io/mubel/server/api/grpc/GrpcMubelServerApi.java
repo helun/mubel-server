@@ -48,4 +48,9 @@ public class GrpcMubelServerApi extends EventServiceGrpc.EventServiceImplBase {
     public void eventStoreSummary(GetEventStoreSummaryRequest request, StreamObserver<EventStoreSummary> responseObserver) {
         eventStoreApiService.eventStoreSummary(request, responseObserver);
     }
+
+    @Override
+    public void subscribeToScheduledEvents(ScheduledEventsSubscribeRequest request, StreamObserver<TriggeredEvents> responseObserver) {
+        subscribeApiService.subscribeToScheduledEvents(request, responseObserver);
+    }
 }

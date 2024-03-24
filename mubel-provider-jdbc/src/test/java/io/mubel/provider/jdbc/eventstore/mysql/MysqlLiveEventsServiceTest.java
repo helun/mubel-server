@@ -4,6 +4,7 @@ import io.mubel.provider.jdbc.Containers;
 import io.mubel.provider.jdbc.eventstore.JdbcEventStore;
 import io.mubel.provider.jdbc.eventstore.JdbcEventStoreProvisioner;
 import io.mubel.provider.jdbc.eventstore.PollingLiveEventsService;
+import io.mubel.provider.jdbc.support.SqlStatements;
 import io.mubel.provider.test.eventstore.LiveEventsServiceTestBase;
 import io.mubel.server.spi.eventstore.EventStore;
 import io.mubel.server.spi.eventstore.LiveEventsService;
@@ -32,7 +33,7 @@ public class MysqlLiveEventsServiceTest extends LiveEventsServiceTestBase {
         var dataSource = Containers.dataSource(container);
         String eventStoreName = "test_es";
         MysqlEventStoreStatements statements = new MysqlEventStoreStatements(eventStoreName);
-        JdbcEventStoreProvisioner.provision(dataSource, statements);
+        JdbcEventStoreProvisioner.provision(dataSource, SqlStatements.of(statements.ddl()));
         var jdbi = Jdbi.create(dataSource);
         eventStore = new JdbcEventStore(
                 jdbi,

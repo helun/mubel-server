@@ -5,6 +5,7 @@ import io.mubel.provider.jdbc.eventstore.EventStoreStatements;
 import io.mubel.provider.jdbc.eventstore.JdbcEventStore;
 import io.mubel.provider.jdbc.eventstore.JdbcEventStoreProvisioner;
 import io.mubel.provider.jdbc.eventstore.JdbcReplayService;
+import io.mubel.provider.jdbc.support.SqlStatements;
 import io.mubel.provider.test.eventstore.ReplayServiceTestBase;
 import io.mubel.server.spi.eventstore.EventStore;
 import io.mubel.server.spi.eventstore.ReplayService;
@@ -34,7 +35,7 @@ public class MysqlReplayServiceTest extends ReplayServiceTestBase {
         var dataSource = Containers.dataSource(container);
         String eventStoreName = "test_es";
         EventStoreStatements statements = new MysqlEventStoreStatements(eventStoreName);
-        JdbcEventStoreProvisioner.provision(dataSource, statements);
+        JdbcEventStoreProvisioner.provision(dataSource, SqlStatements.of(statements.ddl()));
         var jdbi = Jdbi.create(dataSource);
         eventStore = new JdbcEventStore(
                 jdbi,

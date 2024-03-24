@@ -2,6 +2,7 @@ package io.mubel.provider.inmemory;
 
 import io.mubel.provider.inmemory.eventstore.InMemEventStores;
 import io.mubel.provider.inmemory.eventstore.InMemReplayService;
+import io.mubel.provider.inmemory.queue.InMemMessageQueueService;
 import io.mubel.server.spi.EventStoreContext;
 import io.mubel.server.spi.Provider;
 import io.mubel.server.spi.exceptions.ResourceNotFoundException;
@@ -17,10 +18,15 @@ public class InMemProvider implements Provider {
 
     private final InMemEventStores eventStores;
     private final InMemReplayService replayService;
+    private final InMemMessageQueueService messageQueueService;
 
-    public InMemProvider(InMemEventStores eventStores) {
+    public InMemProvider(
+            InMemEventStores eventStores,
+            InMemMessageQueueService messageQueueService
+    ) {
         this.eventStores = eventStores;
-        replayService = new InMemReplayService(eventStores);
+        this.replayService = new InMemReplayService(eventStores);
+        this.messageQueueService = messageQueueService;
     }
 
     @Override
@@ -58,7 +64,8 @@ public class InMemProvider implements Provider {
                 esid,
                 eventStore,
                 replayService,
-                eventStore
+                eventStore,
+                messageQueueService
         );
     }
 

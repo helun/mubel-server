@@ -32,7 +32,7 @@ class JdbcProviderAutoconfigurationTest {
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:latest");
 
     @Container
-    static MySQLContainer mysql = new MySQLContainer<>("mysql:latest");
+    static MySQLContainer<?> mysql = new MySQLContainer<>("mysql:latest");
 
     @DynamicPropertySource
     static void setProperties(DynamicPropertyRegistry registry) {

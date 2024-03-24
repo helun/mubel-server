@@ -77,7 +77,8 @@ public class JdbcProvider implements Provider {
                 esid,
                 jc.eventStore(),
                 jc.replayService(),
-                jc.liveEventsService()
+                jc.liveEventsService(),
+                jc.messageQueueService()
         );
     }
 

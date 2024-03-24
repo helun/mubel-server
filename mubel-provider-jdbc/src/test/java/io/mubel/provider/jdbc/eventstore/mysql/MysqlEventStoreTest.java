@@ -3,6 +3,7 @@ package io.mubel.provider.jdbc.eventstore.mysql;
 import io.mubel.provider.jdbc.Containers;
 import io.mubel.provider.jdbc.eventstore.JdbcEventStore;
 import io.mubel.provider.jdbc.eventstore.JdbcEventStoreProvisioner;
+import io.mubel.provider.jdbc.support.SqlStatements;
 import io.mubel.provider.test.eventstore.EventStoreTestBase;
 import org.jdbi.v3.core.Jdbi;
 import org.junit.jupiter.api.AfterEach;
@@ -25,7 +26,7 @@ public class MysqlEventStoreTest extends EventStoreTestBase {
         var dataSource = Containers.dataSource(container);
         String eventStoreName = "test_es";
         MysqlEventStoreStatements statements = new MysqlEventStoreStatements(eventStoreName);
-        JdbcEventStoreProvisioner.provision(dataSource, statements);
+        JdbcEventStoreProvisioner.provision(dataSource, SqlStatements.of(statements.ddl()));
         eventStore = new JdbcEventStore(
                 Jdbi.create(dataSource),
                 statements,

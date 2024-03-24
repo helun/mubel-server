@@ -4,6 +4,7 @@ import io.mubel.provider.jdbc.Containers;
 import io.mubel.provider.jdbc.eventstore.JdbcEventStore;
 import io.mubel.provider.jdbc.eventstore.JdbcEventStoreProvisioner;
 import io.mubel.provider.jdbc.eventstore.JdbcReplayService;
+import io.mubel.provider.jdbc.support.SqlStatements;
 import io.mubel.provider.test.eventstore.ReplayServiceTestBase;
 import io.mubel.server.spi.eventstore.EventStore;
 import io.mubel.server.spi.eventstore.ReplayService;
@@ -32,7 +33,7 @@ public class PgReplayServiceTest extends ReplayServiceTestBase {
 
         var dataSource = Containers.dataSource(container);
         String eventStoreName = "test_es";
-        JdbcEventStoreProvisioner.provision(dataSource, new PgEventStoreStatements(eventStoreName));
+        JdbcEventStoreProvisioner.provision(dataSource, SqlStatements.of(new PgEventStoreStatements(eventStoreName).ddl()));
         var jdbi = Jdbi.create(dataSource);
         eventStore = new JdbcEventStore(
                 jdbi,

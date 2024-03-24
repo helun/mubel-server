@@ -1,5 +1,6 @@
 package io.mubel.provider.jdbc.eventstore;
 
+import io.mubel.provider.jdbc.support.SqlStatements;
 import io.mubel.server.spi.eventstore.EventStoreProvisioner;
 import io.mubel.server.spi.model.DropEventStoreCommand;
 import io.mubel.server.spi.model.ProvisionCommand;
@@ -11,32 +12,36 @@ import javax.sql.DataSource;
 public class JdbcEventStoreProvisioner implements EventStoreProvisioner {
 
     private final DataSource dataSource;
-    private final EventStoreStatements statements;
+    private final SqlStatements provisionStatements;
+    private final SqlStatements dropStatements;
 
-    public static void provision(DataSource ds, EventStoreStatements statements) {
+    public static void provision(DataSource ds, SqlStatements statements) {
         Jdbi jdbi = Jdbi.create(ds);
-        jdbi.useHandle(h -> statements.ddl().forEach(h::execute));
+        jdbi.useTransaction(h -> statements.forEach(h::execute));
     }
 
-    public static void drop(DataSource ds, EventStoreStatements statements) {
+    public static void drop(DataSource ds, SqlStatements statements) {
         Jdbi jdbi = Jdbi.create(ds);
 
-        jdbi.useHandle(h -> statements.dropSql().forEach(h::execute));
+        jdbi.useTransaction(h -> statements.forEach(h::execute));
     }
 
-    public JdbcEventStoreProvisioner(DataSource ds, EventStoreStatements statements) {
+    public JdbcEventStoreProvisioner(DataSource ds,
+                                     SqlStatements provisionStatements,
+                                     SqlStatements dropStatements) {
         this.dataSource = ds;
-        this.statements = statements;
+        this.provisionStatements = provisionStatements;
+        this.dropStatements = dropStatements;
     }
 
     @Override
     public SpiEventStoreDetails provision(ProvisionCommand request) {
-        JdbcEventStoreProvisioner.provision(dataSource, statements);
+        JdbcEventStoreProvisioner.provision(dataSource, provisionStatements);
         return null;
     }
 
     @Override
     public void drop(DropEventStoreCommand command) {
-        JdbcEventStoreProvisioner.drop(dataSource, statements);
+        JdbcEventStoreProvisioner.drop(dataSource, dropStatements);
     }
 }

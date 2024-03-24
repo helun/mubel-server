@@ -169,7 +169,7 @@ message ScheduledEvent {
   // Id of the event - REQUIRED
   string id = 1;
   // If specified the event will be published to the specified stream when the event is triggered
-  string streamId = 2;
+  optional string streamId = 2;
   // Use this to specify the target entity when the scheduled event should act as a deadline.
   // i.e. the it should not be stored as an event in the event stream.
   string targetEntityId = 3;
@@ -178,7 +178,7 @@ message ScheduledEvent {
   // Indicates if the event should be treated as a deadline event. If true, the event will not be stored in the event stream.
   bool deadline = 5;
   // The category of the event, can be used for filtering
-  string category = 6;
+  optional string category = 6;
   // The time in milliseconds since the epoch (UTC) when the event should be published - REQUIRED
   uint64 publishTime = 7;
   // Meta data for the event
@@ -186,7 +186,7 @@ message ScheduledEvent {
   // Type of event data - REQUIRED if data is specified
   string type = 9;
   // event data - optional
-  bytes data = 10;
+  optional bytes data = 10;
 
 }
 
@@ -196,12 +196,15 @@ message CancelScheduledEventsRequest {
   repeated string eventId = 1;
 }
 
-// Subscribe to scheduled events. The subscriber will receive events when they are published.
+/* Subscribe to scheduled events. The subscriber will receive events when they are published.
+This is a long polling request, if no events are available the request will block until an event is available or the request times out.
+ */
 message ScheduledEventsSubscribeRequest {
-  string consumerGroup = 1;
-  // the categories to subscribe to. If empty, all categories will be subscribed to
-  repeated string category = 2;
-  string consumerGroupToken = 3;
+  // The name of the event store to subscribe to. REQUIRED.
+  string esid = 1;
+  // timeout in seconds, max value is 20 seconds
+  uint32 timeout = 2;
+  uint32 maxEvents = 3;
 }
 
 // Contains events that have been triggered.

@@ -10,7 +10,7 @@ public class PgMessageQueueStatements implements MessageQueueStatements {
     public List<String> ddl() {
         //
         return List.of("""
-                CREATE TABLE message_queue (
+                CREATE TABLE IF NOT EXISTS message_queue (
                           message_id UUID PRIMARY KEY,
                           queue_name TEXT NOT NULL,
                           type TEXT NOT NULL,
@@ -21,8 +21,7 @@ public class PgMessageQueueStatements implements MessageQueueStatements {
                           visible_at TIMESTAMP,
                           lock_expires_at TIMESTAMP
                       );
-                      
-                CREATE INDEX idx_queue_name_visible_at ON message_queue(queue_name, visible_at);
+                CREATE INDEX IF NOT EXISTS idx_queue_name_visible_at ON message_queue(queue_name, visible_at);
                 """);
     }
 

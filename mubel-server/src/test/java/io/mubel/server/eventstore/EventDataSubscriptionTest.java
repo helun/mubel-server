@@ -7,6 +7,7 @@ import io.mubel.server.spi.EventStoreContext;
 import io.mubel.server.spi.eventstore.EventStore;
 import io.mubel.server.spi.eventstore.LiveEventsService;
 import io.mubel.server.spi.eventstore.ReplayService;
+import io.mubel.server.spi.queue.MessageQueueService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -29,9 +30,16 @@ class EventDataSubscriptionTest {
 
     EventStoreContext context;
 
+    MessageQueueService messageQueueService;
+
     @BeforeEach
     void setup() {
-        context = new EventStoreContext("esid", eventStore, replayService, liveEventsService);
+        context = new EventStoreContext("esid",
+                eventStore,
+                replayService,
+                liveEventsService,
+                messageQueueService
+        );
     }
 
     @Test
@@ -93,7 +101,7 @@ class EventDataSubscriptionTest {
     }
 
     static class TestReplayService implements ReplayService {
-        private Queue<List<EventData>> replays = new LinkedList<>();
+        private final Queue<List<EventData>> replays = new LinkedList<>();
 
         public void addReplay(List<EventData> replay) {
             replays.add(replay);
