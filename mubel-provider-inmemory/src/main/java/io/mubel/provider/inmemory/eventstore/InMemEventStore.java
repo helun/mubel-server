@@ -1,6 +1,7 @@
 package io.mubel.provider.inmemory.eventstore;
 
-import io.mubel.api.grpc.*;
+import io.mubel.api.grpc.v1.events.*;
+import io.mubel.api.grpc.v1.server.EventStoreSummary;
 import io.mubel.server.spi.ErrorMessages;
 import io.mubel.server.spi.eventstore.EventStore;
 import io.mubel.server.spi.eventstore.LiveEventsService;
@@ -18,13 +19,11 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import static io.mubel.schema.Constrains.isNotBlank;
-
 public class InMemEventStore implements EventStore, LiveEventsService {
 
     private final List<EventData> events = Collections.synchronizedList(new ArrayList<>(1000));
     private final Set<String> appendLog = new ConcurrentSkipListSet<>();
-    private final Set<String> versionLog = new ConcurrentSkipListSet<>();
+    private final Set<String> revisionLog = new ConcurrentSkipListSet<>();
     private final AtomicLong sequenceNo = new AtomicLong(0L);
     private final Clock clock = Clock.systemUTC();
 
@@ -33,9 +32,11 @@ public class InMemEventStore implements EventStore, LiveEventsService {
 
     @Override
     public GetEventsResponse get(GetEventsRequest request) {
-        var stream = isNotBlank(request.getStreamId()) ?
-                getByStream(request) :
-                getAll(request);
+        var stream = switch (request.getSelector().getByCase()) {
+            case STREAM -> getByStream(request.getSelector().getStream());
+            case ALL -> getAll(request.getSelector().getAll());
+            case BY_NOT_SET -> getAll(AllSelector.getDefaultInstance());
+        };
 
         if (request.getSize() > 0) {
             stream = stream.limit(request.getSize());
@@ -47,21 +48,21 @@ public class InMemEventStore implements EventStore, LiveEventsService {
                 .build();
     }
 
-    private Stream<EventData> getByStream(GetEventsRequest request) {
-        Predicate<EventData> filter = (event) -> event.getStreamId().equals(request.getStreamId());
-        if (request.getFromVersion() > 0) {
-            filter = filter.and((event -> event.getVersion() >= request.getFromVersion()));
+    private Stream<EventData> getByStream(StreamSelector selector) {
+        Predicate<EventData> filter = (event) -> event.getStreamId().equals(selector.getStreamId());
+        if (selector.hasFromVersion()) {
+            filter = filter.and((event -> event.getRevision() >= selector.getFromVersion()));
         }
-        if (request.getToVersion() > 0) {
-            filter = filter.and((event -> event.getVersion() <= request.getToVersion()));
+        if (selector.hasToVersion()) {
+            filter = filter.and((event -> event.getRevision() <= selector.getToVersion()));
         }
         return events.stream().filter(filter);
     }
 
-    private Stream<EventData> getAll(GetEventsRequest request) {
+    private Stream<EventData> getAll(AllSelector selector) {
         var stream = events.stream();
-        if (request.getFromSequenceNo() > 0) {
-            stream = stream.skip(request.getFromSequenceNo());
+        if (selector.getFromSequenceNo() > 0) {
+            stream = stream.skip(selector.getFromSequenceNo());
         }
         return stream;
     }
@@ -70,21 +71,21 @@ public class InMemEventStore implements EventStore, LiveEventsService {
     public void truncate() {
         events.clear();
         appendLog.clear();
-        versionLog.clear();
+        revisionLog.clear();
         sequenceNo.set(0);
     }
 
     @Override
-    public List<EventData> append(AppendRequest request) {
+    public List<EventData> append(AppendOperation request) {
         final var eb = EventData.newBuilder();
         final var result = new ArrayList<EventData>(request.getEventCount());
         for (final var input : request.getEventList()) {
             if (!appendLog.add(input.getId())) {
                 continue;
             }
-            if (!versionLog.add(input.getStreamId() + input.getVersion())) {
+            if (!revisionLog.add(input.getStreamId() + input.getRevision())) {
                 throw new EventVersionConflictException(
-                        ErrorMessages.eventVersionConflict(input.getStreamId(), input.getVersion())
+                        ErrorMessages.eventVersionConflict(input.getStreamId(), input.getRevision())
                 );
             }
             final var ed = eb.setData(input.getData())
@@ -92,7 +93,7 @@ public class InMemEventStore implements EventStore, LiveEventsService {
                     .setStreamId(input.getStreamId())
                     .setCreatedAt(clock.millis())
                     .setType(input.getType())
-                    .setVersion(input.getVersion())
+                    .setRevision(input.getRevision())
                     .setSequenceNo(sequenceNo.incrementAndGet())
                     .build();
             result.add(ed);

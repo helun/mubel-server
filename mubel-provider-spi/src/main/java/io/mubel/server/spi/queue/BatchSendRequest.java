@@ -1,5 +1,7 @@
 package io.mubel.server.spi.queue;
 
+import java.util.List;
+
 public record BatchSendRequest(
         String queueName,
         Iterable<BatchEntry> entries
@@ -11,20 +13,36 @@ public record BatchSendRequest(
 
     public static class BatchSendRequestBuilder {
         private String queueName;
-        private Iterable<BatchEntry> entries;
+        private List<BatchEntry> entries;
 
         public BatchSendRequestBuilder queueName(String queueName) {
             this.queueName = queueName;
             return this;
         }
 
-        public BatchSendRequestBuilder entries(Iterable<BatchEntry> entries) {
-            this.entries = entries;
+        public BatchSendRequestBuilder entries(List<BatchEntry> entries) {
+            if (this.entries == null) {
+                this.entries = new java.util.ArrayList<>(entries);
+            } else {
+                this.entries.addAll(entries);
+            }
+            return this;
+        }
+
+        public BatchSendRequestBuilder entry(BatchEntry entry) {
+            if (entries == null) {
+                entries = new java.util.ArrayList<>();
+            }
+            this.entries.add(entry);
             return this;
         }
 
         public BatchSendRequest build() {
             return new BatchSendRequest(queueName, entries);
+        }
+
+        public boolean hasEntries() {
+            return entries != null && !entries.isEmpty();
         }
     }
 

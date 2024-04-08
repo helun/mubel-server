@@ -1,8 +1,8 @@
 package io.mubel.provider.inmemory.eventstore;
 
-import io.mubel.api.grpc.EventData;
-import io.mubel.api.grpc.GetEventsRequest;
-import io.mubel.api.grpc.SubscribeRequest;
+import io.mubel.api.grpc.v1.events.EventData;
+import io.mubel.api.grpc.v1.events.GetEventsRequest;
+import io.mubel.api.grpc.v1.events.SubscribeRequest;
 import io.mubel.server.spi.eventstore.ReplayService;
 import reactor.core.publisher.Flux;
 
@@ -21,7 +21,7 @@ public class InMemReplayService implements ReplayService {
         final var es = eventStores.get(request.getEsid());
         final var response = es.get(GetEventsRequest.newBuilder()
                 .setEsid(request.getEsid())
-                .setFromSequenceNo(request.getFromSequenceNo())
+                .setSelector(request.getSelector())
                 .setSize(0)
                 .build());
         return Flux.fromIterable(response.getEventList());

@@ -37,7 +37,7 @@ public class ScheduledEventsSteps {
     @When("the client schedules an event for {int} second from now")
     public void theClientSchedulesAnEventForSecondFromNow(int publishDuration) {
         ScheduledEvent event = ScheduledEvent.newBuilder()
-                .setCategory("test")
+                .setDeadline(true)
                 .setId("test-id")
                 .setData(ByteString.EMPTY)
                 .setPublishTime(System.currentTimeMillis() + publishDuration * 1000L)

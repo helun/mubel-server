@@ -1,6 +1,6 @@
 package io.mubel.provider.inmemory.eventstore;
 
-import io.mubel.api.grpc.DataFormat;
+import io.mubel.api.grpc.v1.server.DataFormat;
 import io.mubel.provider.test.eventstore.ReplayServiceTestBase;
 import io.mubel.server.spi.eventstore.EventStore;
 import io.mubel.server.spi.eventstore.ReplayService;

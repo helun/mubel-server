@@ -1,8 +1,6 @@
 package io.mubel.provider.jdbc.eventstore;
 
-import io.mubel.api.grpc.EventData;
-import io.mubel.api.grpc.GetEventsRequest;
-import io.mubel.api.grpc.GetEventsResponse;
+import io.mubel.api.grpc.v1.events.*;
 import io.mubel.server.spi.eventstore.LiveEventsService;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
@@ -76,7 +74,12 @@ public abstract class JdbcLiveEventsService implements LiveEventsService {
         GetEventsResponse response;
         do {
             LOG.debug("fetching events from sequence no: {}", lastSequenceNo);
-            response = eventStore.get(requestBuilder.setFromSequenceNo(lastSequenceNo).build());
+            response = eventStore.get(requestBuilder.setSelector(
+                                    EventSelector.newBuilder().setAll(
+                                            AllSelector.newBuilder().setFromSequenceNo(lastSequenceNo))
+                            )
+                            .build()
+            );
             LOG.debug("dispatching {} events", response.getEventCount());
             for (var event : response.getEventList()) {
                 emitter.next(event);

@@ -1,8 +1,8 @@
 package io.mubel.provider.test.systemdb;
 
-import io.mubel.api.grpc.JobState;
-import io.mubel.api.grpc.JobStatus;
-import io.mubel.api.grpc.ProblemDetail;
+import io.mubel.api.grpc.v1.common.ProblemDetail;
+import io.mubel.api.grpc.v1.server.JobState;
+import io.mubel.api.grpc.v1.server.JobStatus;
 import io.mubel.server.spi.exceptions.ResourceNotFoundException;
 import io.mubel.server.spi.systemdb.JobStatusRepository;
 import org.junit.jupiter.api.DisplayNameGeneration;

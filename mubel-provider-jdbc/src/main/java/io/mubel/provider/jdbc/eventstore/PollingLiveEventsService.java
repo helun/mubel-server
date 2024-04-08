@@ -1,6 +1,6 @@
 package io.mubel.provider.jdbc.eventstore;
 
-import io.mubel.api.grpc.EventData;
+import io.mubel.api.grpc.v1.events.EventData;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.scheduler.Scheduler;

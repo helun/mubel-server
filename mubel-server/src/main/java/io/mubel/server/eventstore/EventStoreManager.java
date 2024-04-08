@@ -1,7 +1,14 @@
 package io.mubel.server.eventstore;
 
-import io.mubel.api.grpc.*;
+import io.mubel.api.grpc.v1.events.Deadline;
+import io.mubel.api.grpc.v1.events.DeadlineSubscribeRequest;
+import io.mubel.api.grpc.v1.events.EventData;
+import io.mubel.api.grpc.v1.events.SubscribeRequest;
+import io.mubel.api.grpc.v1.server.EventStoreDetails;
+import io.mubel.api.grpc.v1.server.EventStoreSummary;
+import io.mubel.api.grpc.v1.server.GetEventStoreSummaryRequest;
 import io.mubel.server.Providers;
+import io.mubel.server.scheduling.ScheduledEventQueueNames;
 import io.mubel.server.spi.EventStoreContext;
 import io.mubel.server.spi.Provider;
 import io.mubel.server.spi.eventstore.EventStore;
@@ -9,6 +16,7 @@ import io.mubel.server.spi.exceptions.ResourceNotFoundException;
 import io.mubel.server.spi.messages.EventStoreEventEnvelope;
 import io.mubel.server.spi.messages.EventStoreEvents;
 import io.mubel.server.spi.model.SpiEventStoreDetails;
+import io.mubel.server.spi.queue.ReceiveRequest;
 import io.mubel.server.spi.systemdb.EventStoreAliasRepository;
 import io.mubel.server.spi.systemdb.EventStoreDetailsRepository;
 import org.slf4j.Logger;
@@ -17,6 +25,7 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -96,7 +105,7 @@ public class EventStoreManager implements ApplicationListener<EventStoreEventEnv
     }
 
     public EventStoreSummary getSummary(GetEventStoreSummaryRequest request) {
-        return eventStores.get(request.getEsid())
+        return getEventStoreContext(request.getEsid())
                 .eventStore()
                 .summary()
                 .toBuilder()
@@ -104,7 +113,18 @@ public class EventStoreManager implements ApplicationListener<EventStoreEventEnv
                 .build();
     }
 
-    public Flux<TriggeredEvents> subscribeToScheduledEvents(ScheduledEventsSubscribeRequest request) {
-        return null;
+    public Flux<Deadline> subcribeToDeadlines(DeadlineSubscribeRequest request) {
+        var ctx = getEventStoreContext(request.getEsid());
+        var queue = ctx.scheduledEventsQueue();
+        var receiveRequest = new ReceiveRequest(
+                ScheduledEventQueueNames.deadlineQueueName(request.getEsid()),
+                Duration.ofSeconds(20)
+        );
+        return queue.receive(receiveRequest)
+                .map(DeadlineMapper::map);
+    }
+
+    public EventStoreContext eventStoreContext(String esid) {
+        return getEventStoreContext(esid);
     }
 }

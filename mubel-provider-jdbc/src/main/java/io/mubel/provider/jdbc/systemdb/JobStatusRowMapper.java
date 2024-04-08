@@ -1,8 +1,8 @@
 package io.mubel.provider.jdbc.systemdb;
 
-import io.mubel.api.grpc.JobState;
-import io.mubel.api.grpc.JobStatus;
-import io.mubel.api.grpc.ProblemDetail;
+import io.mubel.api.grpc.v1.common.ProblemDetail;
+import io.mubel.api.grpc.v1.server.JobState;
+import io.mubel.api.grpc.v1.server.JobStatus;
 import org.jdbi.v3.core.mapper.RowViewMapper;
 import org.jdbi.v3.core.result.RowView;
 

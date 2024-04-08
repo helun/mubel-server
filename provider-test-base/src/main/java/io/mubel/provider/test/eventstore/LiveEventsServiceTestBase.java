@@ -1,8 +1,8 @@
 package io.mubel.provider.test.eventstore;
 
-import io.mubel.api.grpc.AppendRequest;
-import io.mubel.api.grpc.EventData;
-import io.mubel.api.grpc.GetEventsRequest;
+import io.mubel.api.grpc.v1.events.AppendOperation;
+import io.mubel.api.grpc.v1.events.EventData;
+import io.mubel.api.grpc.v1.events.GetEventsRequest;
 import io.mubel.provider.test.Fixtures;
 import io.mubel.provider.test.TestSubscriber;
 import io.mubel.server.spi.eventstore.EventStore;
@@ -38,13 +38,11 @@ public abstract class LiveEventsServiceTestBase {
         assertThat(testSubscriber.values()).hasSize(5)
                 .map(EventData::getSequenceNo)
                 .containsExactly(6L, 7L, 8L, 9L, 10L);
-
     }
 
     private void setupEvents(int count) {
         var events = Fixtures.createEventInputs(count);
-        var request = AppendRequest.newBuilder()
-                .setEsid(esid())
+        var request = AppendOperation.newBuilder()
                 .addAllEvent(events)
                 .build();
         eventStore().append(request);

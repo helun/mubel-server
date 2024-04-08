@@ -1,7 +1,9 @@
 package io.mubel.server.eventstore;
 
-import io.mubel.api.grpc.EventData;
-import io.mubel.api.grpc.SubscribeRequest;
+import io.mubel.api.grpc.v1.events.AllSelector;
+import io.mubel.api.grpc.v1.events.EventData;
+import io.mubel.api.grpc.v1.events.EventSelector;
+import io.mubel.api.grpc.v1.events.SubscribeRequest;
 import io.mubel.server.spi.EventStoreContext;
 import io.mubel.server.spi.exceptions.SequenceNoOutOfSyncException;
 import org.slf4j.Logger;
@@ -24,8 +26,9 @@ public final class EventDataSubscription {
             SubscribeRequest request,
             EventStoreContext context
     ) {
-        LOG.debug("Setting up subscription for {} from sequence no {}", request.getEsid(), request.getFromSequenceNo());
-        final var lastSequenceNo = new AtomicLong(request.getFromSequenceNo());
+        final var allSelector = request.getSelector().getAll();
+        LOG.debug("Setting up subscription for {} from sequence no {}", request.getEsid(), allSelector.getFromSequenceNo());
+        final var lastSequenceNo = new AtomicLong(allSelector.getFromSequenceNo());
         LOG.debug("Last sequence no: {}", lastSequenceNo.get());
         return context.replayService()
                 .replay(request)
@@ -38,7 +41,11 @@ public final class EventDataSubscription {
         long resumeFrom = lastSequenceNo.get();
         LOG.warn("Resuming subscription from {}", resumeFrom);
         return setupSubscription(request.toBuilder()
-                .setFromSequenceNo(resumeFrom)
+                .setSelector(EventSelector.newBuilder()
+                        .setAll(
+                                AllSelector.newBuilder().setFromSequenceNo(resumeFrom)
+                        )
+                )
                 .build(), context);
     }
 

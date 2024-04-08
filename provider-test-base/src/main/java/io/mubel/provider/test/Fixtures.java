@@ -1,8 +1,8 @@
 package io.mubel.provider.test;
 
 import com.google.protobuf.ByteString;
-import io.mubel.api.grpc.EventData;
-import io.mubel.api.grpc.EventDataInput;
+import io.mubel.api.grpc.v1.events.EventData;
+import io.mubel.api.grpc.v1.events.EventDataInput;
 
 import java.time.Clock;
 import java.util.List;
@@ -19,13 +19,15 @@ public class Fixtures {
 
     public static EventDataInput eventInput(int version) {
         return eventDataInputBuilder()
-                .setVersion(version).build();
+                .setRevision(version)
+                .build();
     }
 
     public static EventDataInput eventInput(String streamId, int version) {
         return eventDataInputBuilder()
                 .setStreamId(streamId)
-                .setVersion(version).build();
+                .setRevision(version)
+                .build();
     }
 
     public static EventDataInput.Builder eventDataInputBuilder() {
@@ -33,7 +35,7 @@ public class Fixtures {
                 .setId(uuid())
                 .setStreamId(STREAM_ID_1)
                 .setType("test:event:type")
-                .setVersion(0)
+                .setRevision(0)
                 .setData(ByteString.EMPTY);
     }
 
@@ -51,10 +53,10 @@ public class Fixtures {
                 .toList();
     }
 
-    public static EventData event(String streamId, int version) {
+    public static EventData event(String streamId, int revision) {
         return eventDataBuilder()
                 .setStreamId(streamId)
-                .setVersion(version).build();
+                .setRevision(revision).build();
     }
 
     public static EventData.Builder eventDataBuilder() {
@@ -62,7 +64,7 @@ public class Fixtures {
                 .setId(uuid())
                 .setStreamId(STREAM_ID_1)
                 .setType("test:event:type")
-                .setVersion(0)
+                .setRevision(0)
                 .setSequenceNo(sequenceNo++)
                 .setCreatedAt(Clock.systemUTC().millis())
                 .setData(ByteString.EMPTY);

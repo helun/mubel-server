@@ -1,7 +1,7 @@
 package io.mubel.provider.jdbc.eventstore;
 
-import io.mubel.api.grpc.EventData;
-import io.mubel.api.grpc.SubscribeRequest;
+import io.mubel.api.grpc.v1.events.EventData;
+import io.mubel.api.grpc.v1.events.SubscribeRequest;
 import io.mubel.server.spi.eventstore.ReplayService;
 import org.jdbi.v3.core.Jdbi;
 import reactor.core.publisher.Flux;
@@ -36,7 +36,11 @@ public class JdbcReplayService implements ReplayService {
 
     private void replayInternal(SubscribeRequest request, FluxSink<EventData> sink) {
         AtomicBoolean isCancelled = new AtomicBoolean(false);
-        AtomicLong lastSequenceNo = new AtomicLong(request.getFromSequenceNo());
+        var selector = request.getSelector().getAll();
+        if (selector == null) {
+            throw new UnsupportedOperationException("Only AllSelector is supported");
+        }
+        AtomicLong lastSequenceNo = new AtomicLong(selector.getFromSequenceNo());
         sink.onCancel(() -> isCancelled.set(true));
         sink.onRequest(n -> jdbi.useHandle(handle -> {
             try {

@@ -1,6 +1,6 @@
 package io.mubel.server.jobs;
 
-import io.mubel.api.grpc.JobStatus;
+import io.mubel.api.grpc.v1.server.JobStatus;
 import io.mubel.server.spi.systemdb.JobStatusRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

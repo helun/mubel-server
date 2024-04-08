@@ -1,6 +1,10 @@
 package io.mubel.provider.jdbc.eventstore;
 
-import io.mubel.api.grpc.*;
+import io.mubel.api.grpc.v1.events.AppendOperation;
+import io.mubel.api.grpc.v1.events.EventData;
+import io.mubel.api.grpc.v1.events.GetEventsRequest;
+import io.mubel.api.grpc.v1.events.GetEventsResponse;
+import io.mubel.api.grpc.v1.server.EventStoreSummary;
 import io.mubel.server.spi.eventstore.EventStore;
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.core.statement.Query;
@@ -8,9 +12,7 @@ import org.jdbi.v3.core.statement.Query;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
-import static io.mubel.schema.Constrains.isNotBlank;
 import static io.mubel.schema.Constrains.requireNotBlank;
 
 public class JdbcEventStore implements EventStore {
@@ -37,7 +39,7 @@ public class JdbcEventStore implements EventStore {
     }
 
     @Override
-    public List<EventData> append(AppendRequest request) {
+    public List<EventData> append(AppendOperation request) {
         try {
             return appendInternal(request);
         } catch (Exception e) {
@@ -45,11 +47,13 @@ public class JdbcEventStore implements EventStore {
         }
     }
 
-    private List<EventData> appendInternal(AppendRequest request) {
+    private List<EventData> appendInternal(AppendOperation request) {
         return jdbi.inTransaction(x -> {
+            /*
             if (isNotBlank(request.getRequestId()) && !requestLog.log(UUID.fromString(request.getRequestId()))) {
                 return List.of();
             }
+             */
             final var result = new ArrayList<EventData>(request.getEventCount());
             final var edb = EventData.newBuilder();
             jdbi.useHandle(h -> {
@@ -58,7 +62,7 @@ public class JdbcEventStore implements EventStore {
                     final var millis = clock.millis();
                     batch.bind(0, statements.convertUUID(ed.getId()))
                             .bind(1, statements.convertUUID(ed.getStreamId()))
-                            .bind(2, ed.getVersion())
+                            .bind(2, ed.getRevision())
                             .bind(3, ed.getType())
                             .bind(4, millis)
                             .bind(5, ed.getData().toByteArray())
@@ -67,7 +71,7 @@ public class JdbcEventStore implements EventStore {
                     result.add(edb
                             .setId(ed.getId())
                             .setStreamId(ed.getStreamId())
-                            .setVersion(ed.getVersion())
+                            .setRevision(ed.getRevision())
                             .setType(ed.getType())
                             .setCreatedAt(millis)
                             .setData(ed.getData())
@@ -83,9 +87,10 @@ public class JdbcEventStore implements EventStore {
 
     @Override
     public GetEventsResponse get(GetEventsRequest request) {
-        return request.getStreamId().isBlank() ?
-                getAll(request) :
-                getByStream(request);
+        return switch (request.getSelector().getByCase()) {
+            case STREAM -> getByStream(request);
+            case ALL, BY_NOT_SET -> getAll(request);
+        };
     }
 
     @Override
@@ -111,21 +116,22 @@ public class JdbcEventStore implements EventStore {
     }
 
     private GetEventsResponse getByStream(GetEventsRequest request) {
-        final var nnStreamId = requireNotBlank(request.getStreamId(), "streamId may not be null");
+        var selector = request.getSelector().getStream();
+        final var nnStreamId = requireNotBlank(selector.getStreamId(), "streamId may not be null");
         final int sizeLimit = statements.parseSizeLimit(request.getSize());
         final var events = jdbi.withHandle(h -> {
             final Query query;
-            if (request.getToVersion() == 0) {
+            if (selector.getToVersion() == 0) {
                 query = h.createQuery(statements.getSql())
                         .bind(0, statements.convertUUID(nnStreamId))
-                        .bind(1, request.getFromVersion())
+                        .bind(1, selector.getFromVersion())
                         .bind(2, sizeLimit);
 
             } else {
                 query = h.createQuery(statements.getMaxVersionSql())
                         .bind(0, statements.convertUUID(nnStreamId))
-                        .bind(1, request.getFromVersion())
-                        .bind(2, request.getToVersion())
+                        .bind(1, selector.getFromVersion())
+                        .bind(2, selector.getToVersion())
                         .bind(3, sizeLimit);
             }
             return query.map(new EventDataRowMapper()).list();
@@ -138,9 +144,10 @@ public class JdbcEventStore implements EventStore {
     }
 
     private GetEventsResponse getAll(GetEventsRequest request) {
+        final var selector = request.getSelector().getAll();
         final var events = jdbi.withHandle(h ->
                 h.createQuery(statements.pagedReplaySql())
-                        .bind(0, request.getFromSequenceNo())
+                        .bind(0, selector.getFromSequenceNo())
                         .bind(1, statements.parseSizeLimit(request.getSize()))
                         .map(new EventDataRowMapper())
                         .list());

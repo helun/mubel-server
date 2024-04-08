@@ -1,6 +1,6 @@
 package io.mubel.provider.test.systemdb;
 
-import io.mubel.api.grpc.DataFormat;
+import io.mubel.api.grpc.v1.server.DataFormat;
 import io.mubel.server.spi.eventstore.EventStoreState;
 import io.mubel.server.spi.exceptions.ResourceNotFoundException;
 import io.mubel.server.spi.model.BackendType;

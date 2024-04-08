@@ -4,7 +4,7 @@ import io.grpc.Metadata;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.protobuf.ProtoUtils;
-import io.mubel.api.grpc.ProblemDetail;
+import io.mubel.api.grpc.v1.common.ProblemDetail;
 import io.mubel.server.ValidationException;
 import io.mubel.server.spi.exceptions.BadRequestException;
 import io.mubel.server.spi.exceptions.ResourceNotFoundException;

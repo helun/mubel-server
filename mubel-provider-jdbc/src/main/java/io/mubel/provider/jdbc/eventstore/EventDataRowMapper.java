@@ -1,8 +1,8 @@
 package io.mubel.provider.jdbc.eventstore;
 
 import com.google.protobuf.ByteString;
-import io.mubel.api.grpc.EventData;
-import io.mubel.api.grpc.MetaData;
+import io.mubel.api.grpc.v1.events.EventData;
+import io.mubel.api.grpc.v1.events.MetaData;
 import org.jdbi.v3.core.mapper.RowMapper;
 import org.jdbi.v3.core.statement.StatementContext;
 
@@ -27,7 +27,7 @@ public class EventDataRowMapper implements RowMapper<EventData> {
         return builder
                 .setId(rs.getString(1))
                 .setStreamId(rs.getString(2))
-                .setVersion(rs.getInt(3))
+                .setRevision(rs.getInt(3))
                 .setType(rs.getString(4))
                 .setCreatedAt(rs.getLong(5))
                 .setData(ByteString.copyFrom(rs.getBytes(6)))

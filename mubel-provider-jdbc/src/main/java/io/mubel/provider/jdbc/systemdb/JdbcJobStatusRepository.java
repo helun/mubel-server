@@ -1,6 +1,6 @@
 package io.mubel.provider.jdbc.systemdb;
 
-import io.mubel.api.grpc.JobStatus;
+import io.mubel.api.grpc.v1.server.JobStatus;
 import io.mubel.provider.jdbc.support.CrudRepositoryBase;
 import io.mubel.provider.jdbc.support.RepositoryStatements;
 import io.mubel.server.spi.systemdb.JobStatusRepository;

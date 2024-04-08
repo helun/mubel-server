@@ -1,6 +1,6 @@
 package io.mubel.provider.jdbc.eventstore.pg;
 
-import io.mubel.api.grpc.EventData;
+import io.mubel.api.grpc.v1.events.EventData;
 import io.mubel.provider.jdbc.eventstore.JdbcEventStore;
 import io.mubel.provider.jdbc.eventstore.JdbcLiveEventsService;
 import org.postgresql.jdbc.PgConnection;

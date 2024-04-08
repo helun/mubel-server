@@ -1,6 +1,6 @@
 package io.mubel.server.spi.model;
 
-import io.mubel.api.grpc.DataFormat;
+import io.mubel.api.grpc.v1.server.DataFormat;
 import io.mubel.server.spi.eventstore.EventStoreState;
 
 public record SpiEventStoreDetails(

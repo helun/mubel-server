@@ -1,10 +1,10 @@
-package io.mubel.server.api.grpc;
+package io.mubel.server.api.grpc.events;
 
 import io.grpc.stub.StreamObserver;
-import io.mubel.api.grpc.EventData;
-import io.mubel.api.grpc.ScheduledEventsSubscribeRequest;
-import io.mubel.api.grpc.SubscribeRequest;
-import io.mubel.api.grpc.TriggeredEvents;
+import io.mubel.api.grpc.v1.events.Deadline;
+import io.mubel.api.grpc.v1.events.DeadlineSubscribeRequest;
+import io.mubel.api.grpc.v1.events.EventData;
+import io.mubel.api.grpc.v1.events.SubscribeRequest;
 import io.mubel.server.eventstore.EventStoreManager;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -23,8 +23,8 @@ public class SubscribeApiService {
         stream.subscribe(responseObserver::onNext, responseObserver::onError, responseObserver::onCompleted);
     }
 
-    public void subscribeToScheduledEvents(ScheduledEventsSubscribeRequest request, StreamObserver<TriggeredEvents> responseObserver) {
-        Flux<TriggeredEvents> stream = eventStoreManager.subscribeToScheduledEvents(request);
+    public void subcribeToDeadlines(DeadlineSubscribeRequest request, StreamObserver<Deadline> responseObserver) {
+        Flux<Deadline> stream = eventStoreManager.subcribeToDeadlines(request);
         stream.subscribe(responseObserver::onNext, responseObserver::onError, responseObserver::onCompleted);
     }
 }

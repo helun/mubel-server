@@ -1,6 +1,6 @@
 package io.mubel.provider.jdbc.configuration;
 
-import io.mubel.api.grpc.DataFormat;
+import io.mubel.api.grpc.v1.server.DataFormat;
 import io.mubel.provider.jdbc.JdbcProviderTestApplication;
 import io.mubel.provider.jdbc.eventstore.EventStoreFactory;
 import io.mubel.provider.jdbc.support.JdbcDataSources;

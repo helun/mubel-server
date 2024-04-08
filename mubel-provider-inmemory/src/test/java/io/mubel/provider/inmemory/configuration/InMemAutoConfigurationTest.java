@@ -1,6 +1,6 @@
 package io.mubel.provider.inmemory.configuration;
 
-import io.mubel.api.grpc.DataFormat;
+import io.mubel.api.grpc.v1.server.DataFormat;
 import io.mubel.provider.inmemory.InMemProviderTestApplication;
 import io.mubel.server.spi.Provider;
 import io.mubel.server.spi.model.ProvisionCommand;

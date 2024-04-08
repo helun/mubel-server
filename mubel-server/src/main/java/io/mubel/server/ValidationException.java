@@ -1,7 +1,7 @@
 package io.mubel.server;
 
 import io.grpc.Status;
-import io.mubel.api.grpc.ProblemDetail;
+import io.mubel.api.grpc.v1.common.ProblemDetail;
 import io.mubel.schema.ValidationError;
 import io.mubel.server.spi.exceptions.BadRequestException;
 
