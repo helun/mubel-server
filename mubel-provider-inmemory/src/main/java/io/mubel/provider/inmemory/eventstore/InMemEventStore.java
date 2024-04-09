@@ -5,7 +5,7 @@ import io.mubel.api.grpc.v1.server.EventStoreSummary;
 import io.mubel.server.spi.ErrorMessages;
 import io.mubel.server.spi.eventstore.EventStore;
 import io.mubel.server.spi.eventstore.LiveEventsService;
-import io.mubel.server.spi.exceptions.EventVersionConflictException;
+import io.mubel.server.spi.exceptions.EventRevisionConflictException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 
@@ -50,11 +50,11 @@ public class InMemEventStore implements EventStore, LiveEventsService {
 
     private Stream<EventData> getByStream(StreamSelector selector) {
         Predicate<EventData> filter = (event) -> event.getStreamId().equals(selector.getStreamId());
-        if (selector.hasFromVersion()) {
-            filter = filter.and((event -> event.getRevision() >= selector.getFromVersion()));
+        if (selector.hasFromRevision()) {
+            filter = filter.and((event -> event.getRevision() >= selector.getFromRevision()));
         }
-        if (selector.hasToVersion()) {
-            filter = filter.and((event -> event.getRevision() <= selector.getToVersion()));
+        if (selector.hasToRevision()) {
+            filter = filter.and((event -> event.getRevision() <= selector.getToRevision()));
         }
         return events.stream().filter(filter);
     }
@@ -84,7 +84,7 @@ public class InMemEventStore implements EventStore, LiveEventsService {
                 continue;
             }
             if (!revisionLog.add(input.getStreamId() + input.getRevision())) {
-                throw new EventVersionConflictException(
+                throw new EventRevisionConflictException(
                         ErrorMessages.eventVersionConflict(input.getStreamId(), input.getRevision())
                 );
             }

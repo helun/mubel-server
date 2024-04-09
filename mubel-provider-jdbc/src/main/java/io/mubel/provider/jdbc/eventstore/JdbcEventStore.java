@@ -121,17 +121,17 @@ public class JdbcEventStore implements EventStore {
         final int sizeLimit = statements.parseSizeLimit(request.getSize());
         final var events = jdbi.withHandle(h -> {
             final Query query;
-            if (selector.getToVersion() == 0) {
+            if (selector.getToRevision() == 0) {
                 query = h.createQuery(statements.getSql())
                         .bind(0, statements.convertUUID(nnStreamId))
-                        .bind(1, selector.getFromVersion())
+                        .bind(1, selector.getFromRevision())
                         .bind(2, sizeLimit);
 
             } else {
-                query = h.createQuery(statements.getMaxVersionSql())
+                query = h.createQuery(statements.getMaxRevisionSql())
                         .bind(0, statements.convertUUID(nnStreamId))
-                        .bind(1, selector.getFromVersion())
-                        .bind(2, selector.getToVersion())
+                        .bind(1, selector.getFromRevision())
+                        .bind(2, selector.getToRevision())
                         .bind(3, sizeLimit);
             }
             return query.map(new EventDataRowMapper()).list();

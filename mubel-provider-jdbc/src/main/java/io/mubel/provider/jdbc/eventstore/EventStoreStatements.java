@@ -40,7 +40,7 @@ public abstract class EventStoreStatements {
         return getSql;
     }
 
-    public String getMaxVersionSql() {
+    public String getMaxRevisionSql() {
         return getMaxVersionSql;
     }
 

@@ -3,7 +3,7 @@ package io.mubel.provider.test.eventstore;
 import io.mubel.api.grpc.v1.events.*;
 import io.mubel.provider.test.Fixtures;
 import io.mubel.server.spi.eventstore.EventStore;
-import io.mubel.server.spi.exceptions.EventVersionConflictException;
+import io.mubel.server.spi.exceptions.EventRevisionConflictException;
 import org.junit.jupiter.api.*;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -65,7 +65,7 @@ public abstract class EventStoreTestBase {
         }
 
         @Test
-        void appending_an_event_with_conflicting_version_throws_EventVersionConflictException() {
+        void appending_an_event_with_conflicting_revision_throws_EventRevisionConflictException() {
             var events = Fixtures.createEventInputs(2);
             var request = AppendOperation.newBuilder()
                     .addAllEvent(events)
@@ -76,7 +76,7 @@ public abstract class EventStoreTestBase {
                     .addEvent(Fixtures.eventInput(e2.getStreamId(), e2.getRevision()))
                     .build();
             assertThatThrownBy(() -> eventStore.append(conflictRequest))
-                    .isInstanceOfSatisfying(EventVersionConflictException.class,
+                    .isInstanceOfSatisfying(EventRevisionConflictException.class,
                             err -> assertThat(err.getMessage())
                                     .startsWith("event: streamId:")
                                     .endsWith("already exists")
@@ -101,55 +101,55 @@ public abstract class EventStoreTestBase {
         }
 
         @Test
-        void streamId_and_from_version_returns_events_starting_from_specified_version() {
+        void streamId_and_from_revision_returns_events_starting_from_specified_revision() {
             var count = 10;
             var streamId = appendEvents(count);
-            int fromVersion = 4;
+            int fromRevision = 4;
             var response = eventStore.get(
                     GetEventsRequest.newBuilder()
                             .setEsid(esid())
                             .setSelector(EventSelector.newBuilder()
                                     .setStream(StreamSelector.newBuilder()
                                             .setStreamId(streamId)
-                                            .setFromVersion(fromVersion)
+                                            .setFromRevision(fromRevision)
                                     )
                             )
                             .setSize(100)
                             .build()
             );
             assertThat(response.getEventList())
-                    .as("from version > 0 should limit results from head")
+                    .as("from revision > 0 should limit results from head")
                     .hasSize(6)
                     .map(EventData::getRevision)
                     .first()
-                    .as("first event should have version %s", fromVersion)
-                    .isEqualTo(fromVersion);
+                    .as("first event should have revision %s", fromRevision)
+                    .isEqualTo(fromRevision);
         }
 
         @Test
-        void max_version_returns_events_up_to_specified_version() {
+        void max_revision_returns_events_up_to_specified_revision() {
             var count = 10;
             var streamId = appendEvents(count);
-            int fromVersion = 4;
-            int toVersion = 8;
+            int fromRevision = 4;
+            int toRevision = 8;
             var response = eventStore.get(
                     GetEventsRequest.newBuilder()
                             .setEsid(esid())
                             .setSelector(EventSelector.newBuilder()
                                     .setStream(StreamSelector.newBuilder()
                                             .setStreamId(streamId)
-                                            .setFromVersion(fromVersion)
-                                            .setToVersion(toVersion)
+                                            .setFromRevision(fromRevision)
+                                            .setToRevision(toRevision)
                                     )
                             )
                             .setSize(100)
                             .build()
             );
             assertThat(response.getEventList())
-                    .as("from version > 0 should limit results from head")
+                    .as("from revision > 0 should limit results from head")
                     .hasSize(5)
                     .map(EventData::getRevision)
-                    .as("versions should be (%s, %s)", fromVersion, toVersion)
+                    .as("revision should be (%s, %s)", fromRevision, toRevision)
                     .containsExactly(4, 5, 6, 7, 8);
         }
 
@@ -179,7 +179,7 @@ public abstract class EventStoreTestBase {
                     .setSelector(EventSelector.newBuilder()
                             .setStream(StreamSelector.newBuilder()
                                     .setStreamId(streamId)
-                                    .setFromVersion(10)
+                                    .setFromRevision(10)
                             )
                     )
                     .build());
@@ -190,7 +190,7 @@ public abstract class EventStoreTestBase {
                     .setSelector(EventSelector.newBuilder()
                             .setStream(StreamSelector.newBuilder()
                                     .setStreamId(streamId)
-                                    .setFromVersion(20)
+                                    .setFromRevision(20)
                             )
                     )
                     .build());
@@ -229,11 +229,11 @@ public abstract class EventStoreTestBase {
         return events.getFirst().getStreamId();
     }
 
-    private void assertEvents(final String streamId, final GetEventsResponse response, final int fromVersion) {
-        var expectedVersion = new AtomicInteger(fromVersion);
+    private void assertEvents(final String streamId, final GetEventsResponse response, final int fromRevision) {
+        var expectedRevision = new AtomicInteger(fromRevision);
         assertThat(response.getEventList()).allSatisfy(e -> {
             assertThat(e.getStreamId()).isEqualTo(streamId);
-            assertThat(e.getRevision()).isEqualTo(expectedVersion.getAndIncrement());
+            assertThat(e.getRevision()).isEqualTo(expectedRevision.getAndIncrement());
         });
     }
 

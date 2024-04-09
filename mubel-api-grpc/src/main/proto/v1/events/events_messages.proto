@@ -101,8 +101,8 @@ message ExecuteRequest {
 
 message StreamSelector {
   string streamId = 1;
-  optional uint32 fromVersion = 2;
-  optional uint32 toVersion = 3;
+  optional uint32 fromRevision = 2;
+  optional uint32 toRevision = 3;
 }
 
 message AllSelector {

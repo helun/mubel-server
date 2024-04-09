@@ -3,7 +3,7 @@ package io.mubel.provider.jdbc.eventstore.mysql;
 
 import com.google.common.base.Throwables;
 import io.mubel.provider.jdbc.eventstore.ErrorMapper;
-import io.mubel.server.spi.exceptions.EventVersionConflictException;
+import io.mubel.server.spi.exceptions.EventRevisionConflictException;
 import io.mubel.server.spi.exceptions.StorageBackendException;
 
 import java.sql.SQLException;
@@ -16,7 +16,7 @@ public class MysqlErrorMapper implements ErrorMapper {
         if (root instanceof SQLException mse) {
             if (mse.getErrorCode() == MysqlErrorCode.DUPLICATE_ENTRY) {
                 if (mse.getMessage().contains("sid_ver")) {
-                    return new EventVersionConflictException(
+                    return new EventRevisionConflictException(
                             MysqlErrorMessageParser.parseVersionConflictError(mse.getMessage())
                     );
                 }
