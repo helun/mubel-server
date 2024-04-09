@@ -1,7 +1,7 @@
 package io.mubel.server.api.grpc.schema;
 
 import com.google.protobuf.Descriptors;
-import io.mubel.api.grpc.DropEventStoreRequest;
+import io.mubel.api.grpc.v1.server.DropEventStoreRequest;
 import io.mubel.schema.ObjectSchema;
 import io.mubel.schema.StringSchema;
 import io.mubel.schema.ValidationContext;

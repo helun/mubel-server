@@ -1,7 +1,7 @@
 package io.mubel.server.jobs;
 
-import io.mubel.api.grpc.JobState;
-import io.mubel.api.grpc.JobStatus;
+import io.mubel.api.grpc.v1.server.JobState;
+import io.mubel.api.grpc.v1.server.JobStatus;
 import io.mubel.server.TestApplication;
 import io.mubel.server.spi.systemdb.JobStatusRepository;
 import org.junit.jupiter.api.AfterEach;

@@ -1,6 +1,10 @@
 package io.mubel.server.api.grpc;
 
-import io.mubel.api.grpc.*;
+import io.mubel.api.grpc.v1.events.ExecuteRequest;
+import io.mubel.api.grpc.v1.events.GetEventsRequest;
+import io.mubel.api.grpc.v1.server.CopyEventsRequest;
+import io.mubel.api.grpc.v1.server.DropEventStoreRequest;
+import io.mubel.api.grpc.v1.server.ProvisionEventStoreRequest;
 import io.mubel.schema.ObjectSchema;
 import io.mubel.schema.ValidationContext;
 import io.mubel.server.ValidationException;
@@ -14,14 +18,14 @@ public final class Validator {
 
     private final static Logger LOG = LoggerFactory.getLogger(Validator.class);
     private final static GetEventsSchema GET_EVENTS_SCHEMA = GetEventsSchema.get();
-    private final static AppendRequestSchema APPEND_REQUEST_SCHEMA = AppendRequestSchema.get();
+    private final static ExecuteRequestSchema EXECUTE_REQUEST_SCHEMA = ExecuteRequestSchema.get();
     private final static CopyEventsRequestSchema COPY_EVENTS_REQUEST_SCHEMA = CopyEventsRequestSchema.get();
     private final static ProvisionRequestSchema PROVISION_REQUEST_SCHEMA = ProvisionRequestSchema.get();
     private final static DropEventStoreRequestSchema DROP_EVENT_STORE_REQUEST_SCHEMA = DropEventStoreRequestSchema.get();
 
     private final static Map<Class<?>, ObjectSchema<?>> SCHEMAS = Map.of(
             GetEventsRequest.class, GET_EVENTS_SCHEMA,
-            AppendRequest.class, APPEND_REQUEST_SCHEMA,
+            ExecuteRequest.class, EXECUTE_REQUEST_SCHEMA,
             CopyEventsRequest.class, COPY_EVENTS_REQUEST_SCHEMA,
             ProvisionEventStoreRequest.class, PROVISION_REQUEST_SCHEMA,
             DropEventStoreRequest.class, DROP_EVENT_STORE_REQUEST_SCHEMA

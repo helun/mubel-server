@@ -1,8 +1,8 @@
 package io.mubel.server.eventstore;
 
-import io.mubel.api.grpc.DataFormat;
-import io.mubel.api.grpc.JobState;
-import io.mubel.api.grpc.JobStatus;
+import io.mubel.api.grpc.v1.server.DataFormat;
+import io.mubel.api.grpc.v1.server.JobState;
+import io.mubel.api.grpc.v1.server.JobStatus;
 import io.mubel.provider.inmemory.systemdb.InMemEventStoreAliasRepository;
 import io.mubel.provider.inmemory.systemdb.InMemEventStoreDetailsRepository;
 import io.mubel.server.Providers;

@@ -1,7 +1,9 @@
 package io.mubel.server.eventstore;
 
-import io.mubel.api.grpc.EventData;
-import io.mubel.api.grpc.SubscribeRequest;
+import io.mubel.api.grpc.v1.events.AllSelector;
+import io.mubel.api.grpc.v1.events.EventData;
+import io.mubel.api.grpc.v1.events.EventSelector;
+import io.mubel.api.grpc.v1.events.SubscribeRequest;
 import io.mubel.server.Fixtures;
 import io.mubel.server.spi.EventStoreContext;
 import io.mubel.server.spi.eventstore.EventStore;
@@ -49,7 +51,11 @@ class EventDataSubscriptionTest {
         var request = SubscribeRequest
                 .newBuilder()
                 .setEsid("esid")
-                .setFromSequenceNo(fromSequenceNo)
+                .setSelector(EventSelector.newBuilder()
+                        .setAll(AllSelector.newBuilder()
+                                .setFromSequenceNo(fromSequenceNo)
+                        )
+                )
                 .build();
 
         var replayed = Fixtures.createEvents(3);
@@ -77,7 +83,11 @@ class EventDataSubscriptionTest {
         var request = SubscribeRequest
                 .newBuilder()
                 .setEsid("esid")
-                .setFromSequenceNo(fromSequenceNo)
+                .setSelector(EventSelector.newBuilder()
+                        .setAll(AllSelector.newBuilder()
+                                .setFromSequenceNo(fromSequenceNo)
+                        )
+                )
                 .build();
 
         var firstReplay = Fixtures.createEvents(3);
@@ -118,7 +128,7 @@ class EventDataSubscriptionTest {
 
     static class TestLiveEventsService implements LiveEventsService {
 
-        private Queue<List<EventData>> lives = new LinkedList<>();
+        private final Queue<List<EventData>> lives = new LinkedList<>();
 
         public void addLive(List<EventData> live) {
             lives.add(live);

@@ -1,6 +1,6 @@
 package io.mubel.server.api.grpc.schema;
 
-import io.mubel.api.grpc.EventDataInput;
+import io.mubel.api.grpc.v1.events.EventDataInput;
 import io.mubel.schema.*;
 
 import static io.mubel.schema.Constrains.EVENT_TYPE_PTRN;
@@ -22,7 +22,7 @@ public class EventDataInputSchema extends ObjectSchema<EventDataInput> {
         var event = ctx.currentValue();
         idSchema.validate(ctx.push(event.getId()));
         streamId.validate(ctx.push(event.getStreamId()));
-        version.validate(ctx.push(event.getVersion()));
+        version.validate(ctx.push(event.getRevision()));
         typeSchema.validate(ctx.push(event.getType()));
         return event;
     }

@@ -1,8 +1,8 @@
 package io.mubel.server;
 
 import com.google.protobuf.ByteString;
-import io.mubel.api.grpc.EventData;
-import io.mubel.api.grpc.EventDataInput;
+import io.mubel.api.grpc.v1.events.EventData;
+import io.mubel.api.grpc.v1.events.EventDataInput;
 
 import java.time.Clock;
 import java.util.List;
@@ -21,15 +21,16 @@ public class Fixtures {
         sequenceNo = seqNo;
     }
 
-    public static EventDataInput eventInput(int version) {
+    public static EventDataInput eventInput(int revision) {
         return eventDataInputBuilder()
-                .setVersion(version).build();
+                .setRevision(revision)
+                .build();
     }
 
-    public static EventDataInput eventInput(String streamId, int version) {
+    public static EventDataInput eventInput(String streamId, int revision) {
         return eventDataInputBuilder()
                 .setStreamId(streamId)
-                .setVersion(version).build();
+                .setRevision(revision).build();
     }
 
     public static EventDataInput.Builder eventDataInputBuilder() {
@@ -37,7 +38,7 @@ public class Fixtures {
                 .setId(uuid())
                 .setStreamId(STREAM_ID_1)
                 .setType("test:event:type")
-                .setVersion(0)
+                .setRevision(0)
                 .setData(ByteString.EMPTY);
     }
 
@@ -58,7 +59,7 @@ public class Fixtures {
     public static EventData event(String streamId, int version) {
         return eventDataBuilder()
                 .setStreamId(streamId)
-                .setVersion(version).build();
+                .setRevision(version).build();
     }
 
     public static EventData.Builder eventDataBuilder() {
@@ -66,7 +67,7 @@ public class Fixtures {
                 .setId(uuid())
                 .setStreamId(STREAM_ID_1)
                 .setType("test:event:type")
-                .setVersion(0)
+                .setRevision(0)
                 .setSequenceNo(sequenceNo++)
                 .setCreatedAt(Clock.systemUTC().millis())
                 .setData(ByteString.EMPTY);

@@ -1,9 +1,9 @@
 package io.mubel.server.eventstore;
 
 import io.grpc.Status;
-import io.mubel.api.grpc.JobState;
-import io.mubel.api.grpc.JobStatus;
-import io.mubel.api.grpc.ProblemDetail;
+import io.mubel.api.grpc.v1.common.ProblemDetail;
+import io.mubel.api.grpc.v1.server.JobState;
+import io.mubel.api.grpc.v1.server.JobStatus;
 import io.mubel.server.Providers;
 import io.mubel.server.spi.EventStoreContext;
 import io.mubel.server.spi.eventstore.EventStoreState;
@@ -59,9 +59,6 @@ public class ProvisionService {
             return doProvision(command, job);
         } catch (RuntimeException e) {
             publishFailed(e, job);
-            return CompletableFuture.failedFuture(e);
-        } catch (Exception e) {
-            publishFailed(new RuntimeException(e), job);
             return CompletableFuture.failedFuture(e);
         }
     }

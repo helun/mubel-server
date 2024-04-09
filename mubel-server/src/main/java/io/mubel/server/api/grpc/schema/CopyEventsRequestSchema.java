@@ -1,6 +1,6 @@
 package io.mubel.server.api.grpc.schema;
 
-import io.mubel.api.grpc.CopyEventsRequest;
+import io.mubel.api.grpc.v1.server.CopyEventsRequest;
 import io.mubel.schema.ObjectSchema;
 import io.mubel.schema.StringSchema;
 import io.mubel.schema.ValidationContext;

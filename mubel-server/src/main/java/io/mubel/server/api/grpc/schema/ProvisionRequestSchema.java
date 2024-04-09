@@ -1,8 +1,8 @@
 package io.mubel.server.api.grpc.schema;
 
 import com.google.protobuf.Descriptors;
-import io.mubel.api.grpc.DataFormat;
-import io.mubel.api.grpc.ProvisionEventStoreRequest;
+import io.mubel.api.grpc.v1.server.DataFormat;
+import io.mubel.api.grpc.v1.server.ProvisionEventStoreRequest;
 import io.mubel.schema.ObjectSchema;
 import io.mubel.schema.Schema;
 import io.mubel.schema.StringSchema;
