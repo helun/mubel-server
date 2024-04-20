@@ -9,6 +9,7 @@ import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
 
 import javax.sql.DataSource;
+import java.util.Map;
 
 public final class Containers {
 
@@ -21,6 +22,7 @@ public final class Containers {
         return (MySQLContainer) new MySQLContainer("mysql:latest")
                 .withUsername(USER)
                 .withPassword(USER)
+                .withTmpFs(Map.of("/var/lib/mysql", "rw"))
                 .withCommand("--log-bin-trust-function-creators=1");
     }
 
@@ -30,6 +32,8 @@ public final class Containers {
                 .withDatabaseName("events")
                 .withPassword(USER)
                 .withUsername(USER)
+                .withTmpFs(Map.of("/var/lib/postgresql/data", "rw"))
+                .withEnv("POSTGRES_DATA", "/var/lib/postgresql/data")
                 .waitingFor(Wait.defaultWaitStrategy())
                 .withLogConsumer(new Slf4jLogConsumer(org.slf4j.LoggerFactory.getLogger("postgres")));
     }

@@ -56,7 +56,7 @@ message EntityReference {
 }
 
 /*
-A deadline can be thought if as a scheduled command that will be executed at a specific time.
+A deadline can be thought of as a scheduled command that will be executed at a specific time.
 Deadlines can be cancelled before they are published.
  */
 message Deadline {
