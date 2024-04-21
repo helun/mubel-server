@@ -1,6 +1,8 @@
 package io.mubel.server;
 
 import com.google.protobuf.ByteString;
+import io.mubel.api.grpc.v1.events.Deadline;
+import io.mubel.api.grpc.v1.events.EntityReference;
 import io.mubel.api.grpc.v1.events.EventData;
 import io.mubel.api.grpc.v1.events.EventDataInput;
 
@@ -79,5 +81,14 @@ public class Fixtures {
 
     private static String randomEsid() {
         return uuid() + ":esname";
+    }
+
+    public static Deadline.Builder deadline() {
+        return Deadline.newBuilder()
+                .setType("test-dl")
+                .setTargetEntity(EntityReference.newBuilder()
+                        .setId(Fixtures.uuid())
+                        .setType("test-entity")
+                );
     }
 }

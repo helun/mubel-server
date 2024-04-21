@@ -73,14 +73,14 @@ public abstract class JdbcLiveEventsService implements LiveEventsService {
     protected void dispatchNewEvents(FluxSink<EventData> emitter) {
         GetEventsResponse response;
         do {
-            LOG.debug("fetching events from sequence no: {}", lastSequenceNo);
+            LOG.trace("fetching events from sequence no: {}", lastSequenceNo);
             response = eventStore.get(requestBuilder.setSelector(
                                     EventSelector.newBuilder().setAll(
                                             AllSelector.newBuilder().setFromSequenceNo(lastSequenceNo))
                             )
                             .build()
             );
-            LOG.debug("dispatching {} events", response.getEventCount());
+            LOG.trace("dispatching {} events", response.getEventCount());
             for (var event : response.getEventList()) {
                 emitter.next(event);
                 lastSequenceNo = event.getSequenceNo();
