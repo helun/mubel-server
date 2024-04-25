@@ -5,6 +5,7 @@ import io.mubel.api.grpc.v1.events.Deadline;
 import io.mubel.api.grpc.v1.events.DeadlineSubscribeRequest;
 import io.mubel.api.grpc.v1.events.EventData;
 import io.mubel.api.grpc.v1.events.SubscribeRequest;
+import io.mubel.server.api.grpc.validation.Validators;
 import io.mubel.server.eventstore.EventStoreManager;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -19,7 +20,8 @@ public class SubscribeApiService {
     }
 
     public void subscribe(SubscribeRequest request, StreamObserver<EventData> responseObserver) {
-        Flux<EventData> stream = eventStoreManager.subscribe(request);
+        var validated = Validators.validate(request);
+        Flux<EventData> stream = eventStoreManager.subscribe(validated);
         stream.subscribe(responseObserver::onNext, responseObserver::onError, responseObserver::onCompleted);
     }
 

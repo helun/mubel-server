@@ -164,7 +164,6 @@
         <module>mubel-server</module>
         <module>mubel-provider-spi</module>
         <module>mubel-provider-jdbc</module>
-        <module>mubel-schema</module>
         <module>provider-test-base</module>
         <module>mubel-provider-inmemory</module>
     </modules>

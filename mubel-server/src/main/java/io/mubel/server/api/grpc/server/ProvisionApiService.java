@@ -3,7 +3,7 @@ package io.mubel.server.api.grpc.server;
 import io.mubel.api.grpc.v1.server.DropEventStoreRequest;
 import io.mubel.api.grpc.v1.server.JobStatus;
 import io.mubel.api.grpc.v1.server.ProvisionEventStoreRequest;
-import io.mubel.server.api.grpc.Validator;
+import io.mubel.server.api.grpc.validation.Validators;
 import io.mubel.server.eventstore.ProvisionService;
 import io.mubel.server.jobs.BackgroundJobService;
 import io.mubel.server.spi.model.DropEventStoreCommand;
@@ -31,7 +31,7 @@ public class ProvisionApiService {
     }
 
     public CompletableFuture<JobStatus> provision(ProvisionEventStoreRequest request) {
-        var validated = Validator.validate(request);
+        var validated = Validators.validate(request);
         var command = new ProvisionCommand(
                 idGenerator.generateStringId(),
                 validated.getEsid(),
@@ -51,7 +51,7 @@ public class ProvisionApiService {
     }
 
     public CompletableFuture<JobStatus> drop(DropEventStoreRequest request) {
-        var validated = Validator.validate(request);
+        var validated = Validators.validate(request);
         var command = new DropEventStoreCommand(
                 idGenerator.generateStringId(),
                 validated.getEsid()

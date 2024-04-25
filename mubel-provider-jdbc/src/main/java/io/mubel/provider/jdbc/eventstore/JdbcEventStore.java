@@ -13,7 +13,7 @@ import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 
-import static io.mubel.schema.Constrains.requireNotBlank;
+import static io.mubel.server.spi.support.Constraints.requireNotBlank;
 
 public class JdbcEventStore implements EventStore {
 

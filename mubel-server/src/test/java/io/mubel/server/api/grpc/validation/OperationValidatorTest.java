@@ -12,14 +12,14 @@ class OperationValidatorTest {
     Validator<Operation> validator = OperationValidator.OPERATION_VALIDATOR;
 
     @Test
-    void no_operation_set_is_not_valid() {
+    void no_operation_set_does_not_validate() {
         var op = Operation.newBuilder()
                 .build();
         assertInvalid(op, "no operation set should not validate");
     }
 
     @Test
-    void append_operation_is_valid() {
+    void append_operation_validates() {
         var op = Operation.newBuilder()
                 .setAppend(AppendOperation.newBuilder()
                         .addEvent(Fixtures.eventInput(0))
@@ -29,7 +29,7 @@ class OperationValidatorTest {
     }
 
     @Test
-    void invalid_event_in_append_operation_is_not_valid() {
+    void invalid_event_in_append_operation_does_not_validate() {
         var op = Operation.newBuilder()
                 .setAppend(AppendOperation.newBuilder()
                         .addEvent(Fixtures.eventInput(-99))
@@ -39,7 +39,7 @@ class OperationValidatorTest {
     }
 
     @Test
-    void schedule_event_operation_is_valid() {
+    void schedule_event_operation_validates() {
         var op = Operation.newBuilder()
                 .setScheduleEvent(ScheduleEventOperation.newBuilder()
                         .setEvent(Fixtures.eventInput(0))
@@ -50,7 +50,7 @@ class OperationValidatorTest {
     }
 
     @Test
-    void invalid_event_in_schedule_event_operation_is_not_valid() {
+    void invalid_event_in_schedule_event_operation_does_not_validate() {
         var op = Operation.newBuilder()
                 .setScheduleEvent(ScheduleEventOperation.newBuilder()
                         .setEvent(Fixtures.eventInput(-99))
@@ -61,7 +61,7 @@ class OperationValidatorTest {
     }
 
     @Test
-    void schedule_deadline_operation_is_valid() {
+    void schedule_deadline_operation_validates() {
         var op = Operation.newBuilder()
                 .setScheduleDeadline(ScheduleDeadlineOperation.newBuilder()
                         .setId(Fixtures.uuid())
@@ -73,7 +73,7 @@ class OperationValidatorTest {
     }
 
     @Test
-    void invalid_deadline_schedule_deadline_operation_is_valid() {
+    void invalid_deadline_schedule_deadline_operation_validates() {
         var op = Operation.newBuilder()
                 .setScheduleDeadline(ScheduleDeadlineOperation.newBuilder()
                         .setId(Fixtures.uuid())
@@ -88,6 +88,24 @@ class OperationValidatorTest {
                 )
                 .build();
         assertInvalid(op, "schedule deadline operation should validate");
+    }
+
+    @Test
+    void cancel_operation_validates() {
+        var op = Operation.newBuilder()
+                .setCancel(CancelScheduledOperation.newBuilder()
+                        .addEventId(Fixtures.uuid())
+                )
+                .build();
+        assertValid(op, "cancel operation should validate");
+    }
+
+    @Test
+    void invalid_cancel_operation_does_not_validate() {
+        var op = Operation.newBuilder()
+                .setCancel(CancelScheduledOperation.newBuilder())
+                .build();
+        assertInvalid(op, "cancel operation should validate");
     }
 
     private void assertInvalid(Operation op, String description) {

@@ -1,6 +1,7 @@
 package io.mubel.server.api.grpc.events;
 
 import io.mubel.api.grpc.v1.events.*;
+import io.mubel.server.api.grpc.validation.Validators;
 import io.mubel.server.eventstore.EventStoreManager;
 import io.mubel.server.scheduling.PublishTimeCalculator;
 import io.mubel.server.scheduling.ScheduledEventQueueNames;
@@ -27,10 +28,10 @@ public class ExecuteApiService {
 
     @Transactional
     public void execute(ExecuteRequest request) {
-        LOG.debug("execute: {}", request);
-        var ctx = eventStoreManager.eventStoreContext(request.getEsid());
-        for (var operation : request.getOperationList()) {
-            handleOperation(ctx, request, operation);
+        var validated = Validators.validate(request);
+        var ctx = eventStoreManager.eventStoreContext(validated.getEsid());
+        for (var operation : validated.getOperationList()) {
+            handleOperation(ctx, validated, operation);
         }
     }
 

@@ -1,12 +1,7 @@
-package io.mubel.schema;
+package io.mubel.server.spi.support;
 
-public class Constrains {
-
-    public final static String SAFE_STRING_PTRN = "^[A-Za-z0-9_-]+$";
-    public final static String ESID_PTRN = "^[a-z][a-z0-9_-]{1,99}$";
-    public final static String PROPERTY_PATH_PTRN = "^([A-Za-z0-9_-])+(\\.?([A-Za-z0-9_-])*)*$";
-    public final static String EVENT_TYPE_PTRN = "^([A-Za-z0-9_-])+([\\.:]?([A-Za-z0-9_-])*[\\$\\+]*([A-Za-z0-9_-])*)*$";
-
+public class Constraints {
+    
     public static boolean isNonNull(Object o) {
         return o != null;
     }
@@ -30,3 +25,4 @@ public class Constrains {
         return value >= minInclusive && value < maxExclusive;
     }
 }
+

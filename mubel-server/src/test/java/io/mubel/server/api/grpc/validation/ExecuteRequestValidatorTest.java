@@ -12,8 +12,7 @@ class ExecuteRequestValidatorTest {
         var request = ExecuteRequest.newBuilder()
                 .setEsid("esid")
                 .build();
-        var violations = ExecuteRequestValidator.validate(request);
-        assertThat(violations.isValid()).isTrue();
+        assertValid(request);
     }
 
     @Test
@@ -21,8 +20,17 @@ class ExecuteRequestValidatorTest {
         var request = ExecuteRequest.newBuilder()
                 .setEsid("")
                 .build();
+        assertInvalid(request);
+    }
+
+    private static void assertInvalid(ExecuteRequest request) {
         var violations = ExecuteRequestValidator.validate(request);
         assertThat(violations.isValid()).isFalse();
+    }
+
+    private static void assertValid(ExecuteRequest request) {
+        var violations = ExecuteRequestValidator.validate(request);
+        assertThat(violations.isValid()).isTrue();
     }
 
 }
