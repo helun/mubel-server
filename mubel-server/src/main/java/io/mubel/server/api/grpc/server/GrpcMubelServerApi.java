@@ -2,6 +2,7 @@ package io.mubel.server.api.grpc.server;
 
 import io.grpc.stub.StreamObserver;
 import io.mubel.api.grpc.v1.server.*;
+import io.mubel.server.api.grpc.validation.Validators;
 import io.mubel.server.eventstore.EventStoreManager;
 import io.mubel.server.jobs.BackgroundJobService;
 import net.devh.boot.grpc.server.service.GrpcService;
@@ -62,14 +63,16 @@ public class GrpcMubelServerApi extends MubelServerGrpc.MubelServerImplBase {
 
     @Override
     public void eventStoreSummary(GetEventStoreSummaryRequest request, StreamObserver<EventStoreSummary> responseObserver) {
-        final var summary = eventStoreManager.getSummary(request);
+        var validated = Validators.validate(request);
+        final var summary = eventStoreManager.getSummary(validated);
         responseObserver.onNext(summary);
         responseObserver.onCompleted();
     }
 
     @Override
     public void jobStatus(GetJobStatusRequest request, StreamObserver<JobStatus> responseObserver) {
-        jobService.awaitJobStatus(request.getJobId())
+        var validated = Validators.validate(request);
+        jobService.awaitJobStatus(validated.getJobId())
                 .handle(replyWithJobStatus(responseObserver));
     }
 

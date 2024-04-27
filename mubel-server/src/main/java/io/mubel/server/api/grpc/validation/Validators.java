@@ -6,6 +6,8 @@ import io.mubel.api.grpc.v1.events.ExecuteRequest;
 import io.mubel.api.grpc.v1.events.GetEventsRequest;
 import io.mubel.api.grpc.v1.events.SubscribeRequest;
 import io.mubel.api.grpc.v1.server.DropEventStoreRequest;
+import io.mubel.api.grpc.v1.server.GetEventStoreSummaryRequest;
+import io.mubel.api.grpc.v1.server.GetJobStatusRequest;
 import io.mubel.api.grpc.v1.server.ProvisionEventStoreRequest;
 import io.mubel.server.ValidationException;
 
@@ -38,6 +40,16 @@ public final class Validators {
 
     public static SubscribeRequest validate(SubscribeRequest request) {
         handleResult(SubscribeRequestValidator.validate(request));
+        return request;
+    }
+
+    public static GetEventStoreSummaryRequest validate(GetEventStoreSummaryRequest request) {
+        handleResult(GetEventStoreSummaryRequestValidator.validate(request));
+        return request;
+    }
+
+    public static GetJobStatusRequest validate(GetJobStatusRequest request) {
+        handleResult(GetJobStatusRequestValidator.validate(request));
         return request;
     }
 

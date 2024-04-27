@@ -13,7 +13,7 @@ public class SubscribeRequestValidator {
             ._string(SubscribeRequest::getEsid, "esid", esid())
             .constraint(SubscribeRequest::getTimeout, "timeout", timeout -> timeout.greaterThanOrEqual(0).lessThanOrEqual(20))
             .nest(SubscribeRequest::getSelector, "selector", EventSelectorValidator.EVENT_SELECTOR_VALIDATOR)
-            .constraintOnCondition((r, group) -> r.hasMaxEvents(), op -> op.constraint(SubscribeRequest::getMaxEvents, "size", size -> size.greaterThanOrEqual(1)))
+            .constraintOnCondition((r, group) -> r.hasMaxEvents(), op -> op.constraint(SubscribeRequest::getMaxEvents, "maxEvents", size -> size.greaterThanOrEqual(1)))
             .build();
 
     public static ConstraintViolations validate(SubscribeRequest request) {
