@@ -7,8 +7,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
+import reactor.core.publisher.SignalType;
 import reactor.core.scheduler.Scheduler;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class JdbcLiveEventsService implements LiveEventsService {
@@ -25,6 +28,7 @@ public abstract class JdbcLiveEventsService implements LiveEventsService {
             .setSize(256);
 
     private final JdbcEventStore eventStore;
+    private final CountDownLatch stoppedLatch = new CountDownLatch(1);
 
     public JdbcLiveEventsService(JdbcEventStore eventStore, Scheduler scheduler) {
         this.eventStore = eventStore;
@@ -65,7 +69,11 @@ public abstract class JdbcLiveEventsService implements LiveEventsService {
                         }
                     }
                 }).subscribeOn(scheduler)
-                .doFinally(signal -> stop());
+                .doFinally(this::stopped);
+    }
+
+    private void stopped(SignalType signalType) {
+        stoppedLatch.countDown();
     }
 
     protected abstract void run(FluxSink<EventData> emitter) throws Exception;
@@ -97,12 +105,19 @@ public abstract class JdbcLiveEventsService implements LiveEventsService {
     }
 
     public void stop() {
-        LOG.info("stopping live events service");
-        shouldRun.set(false);
-        if (liveEventsSubscription != null) {
-            liveEventsSubscription.cancel();
+        if (shouldRun.compareAndSet(true, false)) {
+            LOG.info("stopping live events service");
+            if (liveEventsSubscription != null) {
+                liveEventsSubscription.cancel();
+            }
+            onStop();
+            try {
+                stoppedLatch.await(3, TimeUnit.SECONDS);
+                LOG.info("live events service stopped");
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
-        onStop();
     }
 
     protected abstract void onStop();

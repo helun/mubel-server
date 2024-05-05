@@ -11,6 +11,8 @@ import io.mubel.server.spi.model.DropEventStoreCommand;
 import io.mubel.server.spi.model.ProvisionCommand;
 import io.mubel.server.spi.model.StorageBackendProperties;
 import io.mubel.server.spi.support.AsyncExecuteRequestHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.Set;
@@ -20,6 +22,8 @@ import java.util.stream.Collectors;
 public class JdbcProvider implements Provider {
 
     public static final String PROVIDER_NAME = "jdbc";
+
+    private final static Logger LOG = LoggerFactory.getLogger(JdbcProvider.class);
 
     private final Map<String, JdbcEventStoreContext> contexts = new ConcurrentHashMap<>();
     private final Map<String, AsyncExecuteRequestHandler> requestHandlers = new ConcurrentHashMap<>();
@@ -68,6 +72,7 @@ public class JdbcProvider implements Provider {
 
     @Override
     public void drop(DropEventStoreCommand command) {
+        LOG.info("dropping event store: {}", command.esid());
         var context = contexts.get(command.esid());
         context.provisioner().drop(command);
     }
@@ -99,6 +104,7 @@ public class JdbcProvider implements Provider {
 
     @Override
     public void closeEventStore(String esid) {
+        LOG.info("closing event store: {}", esid);
         contexts.get(esid).close();
         var rh = requestHandlers.remove(esid);
         if (rh != null) {
