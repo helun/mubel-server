@@ -71,6 +71,7 @@ public class InMemProvider implements Provider {
                 100,
                 1000
         );
+        executeRequestHandler.start();
         requesthandlers.put(esid, executeRequestHandler);
         return new EventStoreContext(
                 esid,

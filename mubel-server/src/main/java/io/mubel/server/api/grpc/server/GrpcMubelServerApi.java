@@ -56,7 +56,6 @@ public class GrpcMubelServerApi extends MubelServerGrpc.MubelServerImplBase {
                 .addAllEventStore(details)
                 .addAllStorageBackend(backends)
                 .build();
-        LOG.debug("server info: {}", response);
         responseObserver.onNext(response);
         responseObserver.onCompleted();
     }
