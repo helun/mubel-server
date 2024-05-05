@@ -3,6 +3,8 @@ package io.mubel.provider.inmemory.queue;
 import io.mubel.server.spi.queue.*;
 import io.mubel.server.spi.support.IdGenerator;
 import io.mubel.server.spi.support.TimeBudget;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 
 import java.util.Collection;
@@ -11,6 +13,8 @@ import java.util.UUID;
 import java.util.concurrent.*;
 
 public class InMemMessageQueueService implements MessageQueueService {
+
+    private static final Logger LOG = LoggerFactory.getLogger(InMemMessageQueueService.class);
 
     private final Map<String, DelayQueue<DelayedMessage>> queues = new ConcurrentHashMap<>();
     private final Map<UUID, ScheduledFuture<?>> messagesInFlight = new ConcurrentHashMap<>();
@@ -76,8 +80,10 @@ public class InMemMessageQueueService implements MessageQueueService {
         ScheduledFuture<?> future = inflightExecutor.schedule(() -> {
             resolveQueue(message.queueName()).put(new DelayedMessage(message, 0));
             messagesInFlight.remove(message.messageId());
+            LOG.debug("Message {} has timed out", message.messageId());
         }, visibilityTimeout, TimeUnit.MILLISECONDS);
         messagesInFlight.put(message.messageId(), future);
+        LOG.debug("In flight message {} scheduled", message.messageId());
     }
 
     @Override
@@ -86,8 +92,10 @@ public class InMemMessageQueueService implements MessageQueueService {
             var future = messagesInFlight.remove(uuid);
             if (future != null) {
                 future.cancel(false);
+                LOG.debug("In flight message {} deleted / acknowledged", uuid);
             } else {
-                queues.values().stream()
+                queues.values()
+                        .stream()
                         .filter(queue -> queue.removeIf(dm -> dm.message().messageId().equals(uuid)))
                         .findFirst();
             }

@@ -10,6 +10,7 @@ import io.mubel.server.spi.exceptions.ResourceNotFoundException;
 import io.mubel.server.spi.model.DropEventStoreCommand;
 import io.mubel.server.spi.model.ProvisionCommand;
 import io.mubel.server.spi.model.StorageBackendProperties;
+import io.mubel.server.spi.support.AsyncExecuteRequestHandler;
 
 import java.util.Map;
 import java.util.Set;
@@ -21,6 +22,7 @@ public class JdbcProvider implements Provider {
     public static final String PROVIDER_NAME = "jdbc";
 
     private final Map<String, JdbcEventStoreContext> contexts = new ConcurrentHashMap<>();
+    private final Map<String, AsyncExecuteRequestHandler> requestHandlers = new ConcurrentHashMap<>();
     private final EventStoreFactory eventStoreFactory;
     private final JdbcDataSources jdbcDataSources;
     private final JdbcProviderProperties properties;
@@ -73,8 +75,21 @@ public class JdbcProvider implements Provider {
     @Override
     public EventStoreContext openEventStore(String esid) {
         var jc = contexts.get(esid);
+
+        var executeRequestHandler = new AsyncExecuteRequestHandler(
+                esid,
+                jc.eventStore(),
+                jc.messageQueueService(),
+                64,
+                2000
+        );
+
+        requestHandlers.put(esid, executeRequestHandler);
+        executeRequestHandler.start();
+
         return new EventStoreContext(
                 esid,
+                executeRequestHandler,
                 jc.eventStore(),
                 jc.replayService(),
                 jc.liveEventsService(),
@@ -85,5 +100,9 @@ public class JdbcProvider implements Provider {
     @Override
     public void closeEventStore(String esid) {
         contexts.get(esid).close();
+        var rh = requestHandlers.remove(esid);
+        if (rh != null) {
+            rh.stop();
+        }
     }
 }

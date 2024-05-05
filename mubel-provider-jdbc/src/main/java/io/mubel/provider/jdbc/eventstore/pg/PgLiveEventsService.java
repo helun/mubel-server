@@ -50,7 +50,7 @@ public class PgLiveEventsService extends JdbcLiveEventsService {
     @Override
     protected void onStop() {
         try {
-            if (connection != null && !connection.isClosed()) {
+            if (connection != null && !connection.isClosed() && !Thread.currentThread().isInterrupted()) {
                 connection.close();
             }
         } catch (Exception e) {

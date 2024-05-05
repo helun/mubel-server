@@ -12,6 +12,7 @@ import io.mubel.server.spi.exceptions.ResourceNotFoundException;
 import io.mubel.server.spi.model.*;
 import io.mubel.server.spi.queue.QueueConfiguration;
 import io.mubel.server.spi.queue.QueueConfigurations;
+import io.mubel.server.spi.support.AsyncExecuteRequestHandler;
 import io.mubel.server.support.DefaultIdGenerator;
 
 import java.time.Duration;
@@ -75,8 +76,17 @@ public class TestProvider implements Provider {
         InMemMessageQueueService messageQueueService = new InMemMessageQueueService(DefaultIdGenerator.defaultGenerator(), new QueueConfigurations(List.of(
                 new QueueConfiguration("scheduledEvents", Duration.ofSeconds(1))
         )));
+
+        var exh = new AsyncExecuteRequestHandler(
+                esid,
+                eventStore,
+                messageQueueService,
+                100,
+                1000);
+
         return new EventStoreContext(
                 esid,
+                exh,
                 eventStore,
                 new InMemReplayService(eventStores),
                 eventStore,

@@ -22,7 +22,7 @@ public abstract class MessageQueueServiceTestBase {
     public static final String TYPE = "test-type";
     public static final String PAYLOAD = "test-payload";
 
-    public static final Duration VISIBILITY_TIMEOUT = Duration.ofSeconds(3);
+    public static final Duration VISIBILITY_TIMEOUT = Duration.ofSeconds(2);
 
     protected abstract MessageQueueService service();
 
@@ -43,23 +43,12 @@ public abstract class MessageQueueServiceTestBase {
         var message = queue.receive(request).blockFirst();
 
         assertReceived(message);
-        long timeSinceSend = System.currentTimeMillis() - startTime;
-        Duration mustNotAppearDuration = VISIBILITY_TIMEOUT.minusMillis(timeSinceSend);
-        assertDuring(mustNotAppearDuration, () -> {
-            var shouldBeNull = queue.receive(new ReceiveRequest(QUEUE_NAME, mustNotAppearDuration))
-                    .blockFirst();
-            assertThat(shouldBeNull)
-                    .as("message should not reappear in the queue before visibility timeout. appeared after %d ms", System.currentTimeMillis() - startTime)
-                    .isNull();
-        });
-
-        await().untilAsserted(() -> {
-            var shouldReappear = queue.receive(new ReceiveRequest(QUEUE_NAME, VISIBILITY_TIMEOUT.plusMillis(100)))
-                    .blockFirst();
-            assertThat(shouldReappear).isNotNull();
-            assertThat(shouldReappear.messageId()).isEqualTo(message.messageId());
-        });
-
+        var shouldReappear = queue.receive(new ReceiveRequest(QUEUE_NAME, VISIBILITY_TIMEOUT.plusMillis(3000)))
+                .blockFirst();
+        var timeSinceSend = System.currentTimeMillis() - startTime;
+        assertThat(shouldReappear).isNotNull();
+        assertThat(shouldReappear.messageId()).isEqualTo(message.messageId());
+        assertThat(timeSinceSend).isGreaterThan(VISIBILITY_TIMEOUT.toMillis());
     }
 
     @Test

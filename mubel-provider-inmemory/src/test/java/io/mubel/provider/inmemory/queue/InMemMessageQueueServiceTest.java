@@ -25,4 +25,6 @@ class InMemMessageQueueServiceTest extends MessageQueueServiceTestBase {
     protected MessageQueueService service() {
         return service;
     }
+
+
 }

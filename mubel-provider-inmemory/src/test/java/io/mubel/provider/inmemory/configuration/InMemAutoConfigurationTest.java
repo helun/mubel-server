@@ -36,7 +36,7 @@ class InMemAutoConfigurationTest {
         provider.provision(command);
         var context = provider.openEventStore(esid);
         assertThat(context).isNotNull();
-        assertThat(context.eventStore()).isNotNull();
+        assertThat(context.executeRequestHandler()).isNotNull();
         assertThat(context.replayService()).isNotNull();
         assertThat(context.liveEventsService()).isNotNull();
     }

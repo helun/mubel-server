@@ -20,9 +20,16 @@ public class GrpcMubelEventsApi extends MubelEventsServiceGrpc.MubelEventsServic
 
     @Override
     public void execute(ExecuteRequest request, StreamObserver<Empty> responseObserver) {
-        executeService.execute(request);
-        responseObserver.onNext(Empty.getDefaultInstance());
-        responseObserver.onCompleted();
+        executeService.execute(request)
+                .handle((ignored, err) -> {
+                    if (err != null) {
+                        responseObserver.onError(err);
+                    } else {
+                        responseObserver.onNext(Empty.getDefaultInstance());
+                        responseObserver.onCompleted();
+                    }
+                    return null;
+                });
     }
 
     @Override

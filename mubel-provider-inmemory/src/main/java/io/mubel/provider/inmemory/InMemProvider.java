@@ -9,8 +9,11 @@ import io.mubel.server.spi.exceptions.ResourceNotFoundException;
 import io.mubel.server.spi.model.DropEventStoreCommand;
 import io.mubel.server.spi.model.ProvisionCommand;
 import io.mubel.server.spi.model.StorageBackendProperties;
+import io.mubel.server.spi.support.AsyncExecuteRequestHandler;
 
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class InMemProvider implements Provider {
 
@@ -19,6 +22,7 @@ public class InMemProvider implements Provider {
     private final InMemEventStores eventStores;
     private final InMemReplayService replayService;
     private final InMemMessageQueueService messageQueueService;
+    private final Map<String, AsyncExecuteRequestHandler> requesthandlers = new ConcurrentHashMap<>();
 
     public InMemProvider(
             InMemEventStores eventStores,
@@ -60,8 +64,17 @@ public class InMemProvider implements Provider {
     @Override
     public EventStoreContext openEventStore(String esid) {
         var eventStore = eventStores.get(esid);
+        var executeRequestHandler = new AsyncExecuteRequestHandler(
+                esid,
+                eventStore,
+                messageQueueService,
+                100,
+                1000
+        );
+        requesthandlers.put(esid, executeRequestHandler);
         return new EventStoreContext(
                 esid,
+                executeRequestHandler,
                 eventStore,
                 replayService,
                 eventStore,
@@ -72,5 +85,9 @@ public class InMemProvider implements Provider {
     @Override
     public void closeEventStore(String esid) {
         eventStores.close(esid);
+        var rh = requesthandlers.remove(esid);
+        if (rh != null) {
+            rh.stop();
+        }
     }
 }

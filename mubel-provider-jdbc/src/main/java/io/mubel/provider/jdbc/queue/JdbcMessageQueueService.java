@@ -42,9 +42,10 @@ public class JdbcMessageQueueService implements MessageQueueService {
     public void start() {
         Executors.newVirtualThreadPerTaskExecutor().execute(() -> {
             try {
+                final var sleepTime = Duration.ofMillis(500);
                 while (!Thread.currentThread().isInterrupted()) {
                     enforceVisibilityTimeout();
-                    Thread.sleep(visibilityTimeout);
+                    Thread.sleep(sleepTime);
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();

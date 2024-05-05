@@ -62,7 +62,7 @@ public class JdbcProviderProperties {
 
     public static class DataSourceProperties extends org.springframework.boot.autoconfigure.jdbc.DataSourceProperties {
         private int maximumPoolSize;
-        private long connectionTimeout;
+        private long connectionTimeout = 1000;
         private long idleTimeout;
         private long maxLifetime;
 

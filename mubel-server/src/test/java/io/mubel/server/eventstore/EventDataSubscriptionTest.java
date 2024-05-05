@@ -7,6 +7,7 @@ import io.mubel.api.grpc.v1.events.SubscribeRequest;
 import io.mubel.server.Fixtures;
 import io.mubel.server.spi.EventStoreContext;
 import io.mubel.server.spi.eventstore.EventStore;
+import io.mubel.server.spi.eventstore.ExecuteRequestHandler;
 import io.mubel.server.spi.eventstore.LiveEventsService;
 import io.mubel.server.spi.eventstore.ReplayService;
 import io.mubel.server.spi.queue.MessageQueueService;
@@ -28,6 +29,8 @@ class EventDataSubscriptionTest {
 
     TestLiveEventsService liveEventsService = new TestLiveEventsService();
 
+    ExecuteRequestHandler executeRequestHandler;
+
     EventStore eventStore;
 
     EventStoreContext context;
@@ -37,6 +40,7 @@ class EventDataSubscriptionTest {
     @BeforeEach
     void setup() {
         context = new EventStoreContext("esid",
+                executeRequestHandler,
                 eventStore,
                 replayService,
                 liveEventsService,
