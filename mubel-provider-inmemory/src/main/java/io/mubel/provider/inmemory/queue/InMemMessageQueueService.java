@@ -42,6 +42,7 @@ public class InMemMessageQueueService implements MessageQueueService {
 
     private void addMessageToQueue(String queueName, String type, byte[] payload, long delayMillis) {
         var queue = resolveQueue(queueName);
+        LOG.debug("Adding message to queue {}", queueName);
         queue.put(new DelayedMessage(new Message(idGenerator.generate(), queueName, type, payload), delayMillis));
     }
 
@@ -51,29 +52,35 @@ public class InMemMessageQueueService implements MessageQueueService {
 
     @Override
     public Flux<Message> receive(ReceiveRequest request) {
-        return Flux.create(sink -> {
-            var timeBudget = new TimeBudget(request.timeout());
-            var queue = resolveQueue(request.queueName());
-            var visibilityTimeout = this.config.getQueue(request.queueName()).visibilityTimeout().toMillis();
-            try {
-                int receivedCount = 0;
-                while (timeBudget.hasTimeRemaining()
-                        && receivedCount < request.maxMessages()
-                        && !sink.isCancelled()
-                ) {
-                    var delayedMessage = queue.poll(timeBudget.remainingTimeMs(), TimeUnit.MILLISECONDS);
-                    if (delayedMessage != null) {
-                        sink.next(delayedMessage.message());
-                        scheduleInFlightTimeout(delayedMessage.message(), visibilityTimeout);
-                        receivedCount++;
+        return Flux.<Message>create(sink -> {
+                    var timeBudget = new TimeBudget(request.timeout());
+                    var queue = resolveQueue(request.queueName());
+                    var visibilityTimeout = this.config.getQueue(request.queueName()).visibilityTimeout().toMillis();
+                    try {
+                        LOG.debug("Polling queue {}", request.queueName());
+                        int receivedCount = 0;
+                        while (timeBudget.hasTimeRemaining()
+                                && receivedCount < request.maxMessages()
+                                && !sink.isCancelled()
+                        ) {
+                            LOG.debug("Polling queue {}, time remaining: {}", request.queueName(), timeBudget.remainingTimeMs());
+                            var delayedMessage = queue.poll(timeBudget.remainingTimeMs(), TimeUnit.MILLISECONDS);
+                            if (delayedMessage != null) {
+                                LOG.debug("Received message {}", delayedMessage.message().messageId());
+                                sink.next(delayedMessage.message());
+                                scheduleInFlightTimeout(delayedMessage.message(), visibilityTimeout);
+                                receivedCount++;
+                            }
+                        }
+                        sink.complete();
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        sink.complete();
                     }
-                }
-                sink.complete();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                sink.complete();
-            }
-        });
+                }).doOnComplete(() -> LOG.debug("Receive request completed"))
+                .doOnNext(message -> LOG.debug("Received message {}", message.messageId()))
+                .doOnError(e -> LOG.error("Error during receive", e))
+                .doOnSubscribe(subscription -> LOG.debug("Receive request started"));
     }
 
     private void scheduleInFlightTimeout(Message message, long visibilityTimeout) {

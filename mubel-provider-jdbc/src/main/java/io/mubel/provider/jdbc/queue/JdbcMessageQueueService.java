@@ -40,19 +40,21 @@ public class JdbcMessageQueueService implements MessageQueueService {
     }
 
     public void start() {
-        Executors.newVirtualThreadPerTaskExecutor().execute(() -> {
-            try {
-                final var sleepTime = Duration.ofMillis(500);
-                while (!Thread.currentThread().isInterrupted()) {
-                    enforceVisibilityTimeout();
-                    Thread.sleep(sleepTime);
+        try (var es = Executors.newVirtualThreadPerTaskExecutor()) {
+            es.execute(() -> {
+                try {
+                    final var sleepTime = Duration.ofMillis(500);
+                    while (!Thread.currentThread().isInterrupted()) {
+                        enforceVisibilityTimeout();
+                        Thread.sleep(sleepTime);
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } catch (Exception e) {
+                    LOG.error("Error enforcing visibility timeout", e);
                 }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            } catch (Exception e) {
-                LOG.error("Error enforcing visibility timeout", e);
-            }
-        });
+            });
+        }
     }
 
     private void enforceVisibilityTimeout() {
@@ -67,6 +69,7 @@ public class JdbcMessageQueueService implements MessageQueueService {
 
     @Override
     public void send(SendRequest request) {
+        LOG.debug("sending message: {}", request);
         jdbi.useTransaction(h -> h.createUpdate(statements.insert())
                 .bind(0, idGenerator.generate())
                 .bind(1, request.queueName())
@@ -79,6 +82,7 @@ public class JdbcMessageQueueService implements MessageQueueService {
 
     @Override
     public void send(BatchSendRequest request) {
+        LOG.debug("sending batch to {}", request.queueName());
         jdbi.useTransaction(h -> {
             var batch = h.prepareBatch(statements.insert());
             for (var entry : request.entries()) {
@@ -96,6 +100,7 @@ public class JdbcMessageQueueService implements MessageQueueService {
 
     @Override
     public Flux<Message> receive(ReceiveRequest request) {
+        LOG.debug("got receive request: {}", request);
         return Flux.create(sink -> {
             try {
                 final var timeBudget = new TimeBudget(request.timeout());
@@ -118,6 +123,7 @@ public class JdbcMessageQueueService implements MessageQueueService {
                 sink.error(e);
             }
             sink.complete();
+            LOG.debug("receive request completed");
         });
     }
 

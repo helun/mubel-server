@@ -3,11 +3,15 @@ package io.mubel.provider.jdbc.queue.pg;
 import io.mubel.provider.jdbc.queue.PollStrategy;
 import io.mubel.provider.jdbc.queue.QueuePollContext;
 import io.mubel.server.spi.queue.Message;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.UUID;
 
 public class PgPollStrategy implements PollStrategy {
+
+    private static final Logger LOG = LoggerFactory.getLogger(PgPollStrategy.class);
 
     private final PgMessageQueueStatements statements;
 
@@ -23,6 +27,7 @@ public class PgPollStrategy implements PollStrategy {
     }
 
     private int doPoll(QueuePollContext context, Instant expiresAt) {
+        LOG.debug("Polling with message limit {}", context.messageLimit());
         return context.jdbi().withHandle(h -> h.createQuery(statements.poll())
                 .bind(0, context.queueName())
                 .bind(1, context.messageLimit())

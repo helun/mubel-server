@@ -5,6 +5,7 @@ import io.mubel.api.grpc.v1.events.Deadline;
 import io.mubel.api.grpc.v1.events.DeadlineSubscribeRequest;
 import io.mubel.api.grpc.v1.events.EventData;
 import io.mubel.api.grpc.v1.events.SubscribeRequest;
+import io.mubel.server.api.grpc.GrpcExceptionAdvice;
 import io.mubel.server.api.grpc.validation.Validators;
 import io.mubel.server.eventstore.EventStoreManager;
 import org.springframework.stereotype.Service;
@@ -14,9 +15,11 @@ import reactor.core.publisher.Flux;
 public class SubscribeApiService {
 
     private final EventStoreManager eventStoreManager;
+    private GrpcExceptionAdvice grpcExceptionAdvice;
 
-    public SubscribeApiService(EventStoreManager eventStoreManager) {
+    public SubscribeApiService(EventStoreManager eventStoreManager, GrpcExceptionAdvice grpcExceptionAdvice) {
         this.eventStoreManager = eventStoreManager;
+        this.grpcExceptionAdvice = grpcExceptionAdvice;
     }
 
     public void subscribe(SubscribeRequest request, StreamObserver<EventData> responseObserver) {
@@ -26,7 +29,8 @@ public class SubscribeApiService {
     }
 
     public void subcribeToDeadlines(DeadlineSubscribeRequest request, StreamObserver<Deadline> responseObserver) {
-        Flux<Deadline> stream = eventStoreManager.subcribeToDeadlines(request);
-        stream.subscribe(responseObserver::onNext, responseObserver::onError, responseObserver::onCompleted);
+        eventStoreManager.subcribeToDeadlines(request)
+                .onErrorMap(grpcExceptionAdvice::handleException)
+                .subscribe(responseObserver::onNext, responseObserver::onError, responseObserver::onCompleted);
     }
 }

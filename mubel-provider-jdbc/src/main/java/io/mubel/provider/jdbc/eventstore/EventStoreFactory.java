@@ -100,7 +100,7 @@ public class EventStoreFactory {
                 .jdbi(jdbi)
                 .statements(queueStatements)
                 .idGenerator(idGenerator)
-                .waitStrategy(new SimpleWaitStrategy(Duration.ofSeconds(30)))
+                .waitStrategy(new SimpleWaitStrategy(Duration.ofSeconds(1)))
                 .pollStrategy(new MysqlPollStrategy(queueStatements))
                 .deleteStrategy(new BatchDeleteStrategy(queueStatements))
                 .build();
@@ -145,7 +145,7 @@ public class EventStoreFactory {
                 .jdbi(jdbi)
                 .statements(queueStatements)
                 .idGenerator(idGenerator)
-                .waitStrategy(new SimpleWaitStrategy(Duration.ofSeconds(30)))
+                .waitStrategy(new SimpleWaitStrategy(Duration.ofSeconds(1)))
                 .pollStrategy(new PgPollStrategy(queueStatements))
                 .deleteStrategy(new DefaultDeleteStrategy(queueStatements))
                 .build();

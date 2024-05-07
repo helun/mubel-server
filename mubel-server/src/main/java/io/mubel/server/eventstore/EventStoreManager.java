@@ -114,6 +114,7 @@ public class EventStoreManager implements ApplicationListener<EventStoreEventEnv
     }
 
     public Flux<Deadline> subcribeToDeadlines(DeadlineSubscribeRequest request) {
+        LOG.debug("subscribing to deadlines for esid: {}", request.getEsid());
         var ctx = getEventStoreContext(request.getEsid());
         var queue = ctx.scheduledEventsQueue();
         var receiveRequest = new ReceiveRequest(

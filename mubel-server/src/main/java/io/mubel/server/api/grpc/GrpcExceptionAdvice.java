@@ -42,8 +42,20 @@ public class GrpcExceptionAdvice {
     }
 
     @GrpcExceptionHandler
-    public StatusRuntimeException handle(Exception e) {
+    public StatusRuntimeException handle(Throwable e) {
         Status status = Status.INTERNAL.withDescription(e.getMessage());
         return status.asRuntimeException();
+    }
+
+    public StatusRuntimeException handleException(Throwable e) {
+        if (e instanceof ValidationException ve) {
+            return handle(ve);
+        } else if (e instanceof ResourceNotFoundException rnfe) {
+            return handle(rnfe);
+        } else if (e instanceof BadRequestException bre) {
+            return handle(bre);
+        } else {
+            return handle(e);
+        }
     }
 }
