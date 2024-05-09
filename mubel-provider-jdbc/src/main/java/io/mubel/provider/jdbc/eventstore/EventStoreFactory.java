@@ -1,6 +1,7 @@
 package io.mubel.provider.jdbc.eventstore;
 
 import io.mubel.provider.jdbc.configuration.JdbcProviderProperties;
+import io.mubel.provider.jdbc.eventstore.mysql.MysqlErrorMapper;
 import io.mubel.provider.jdbc.eventstore.mysql.MysqlEventStoreStatements;
 import io.mubel.provider.jdbc.eventstore.pg.PgErrorMapper;
 import io.mubel.provider.jdbc.eventstore.pg.PgEventStoreStatements;
@@ -18,30 +19,35 @@ import io.mubel.provider.jdbc.support.SqlStatements;
 import io.mubel.provider.jdbc.support.mysql.MysqlJdbiFactory;
 import io.mubel.server.spi.exceptions.ResourceNotFoundException;
 import io.mubel.server.spi.model.ProvisionCommand;
+import io.mubel.server.spi.queue.QueueConfigurations;
 import io.mubel.server.spi.support.IdGenerator;
 import org.jdbi.v3.core.Jdbi;
 import reactor.core.scheduler.Scheduler;
 
 import javax.sql.DataSource;
-import java.time.Duration;
 
 public class EventStoreFactory {
+
+    private static final String DEFAULT_DEADLINE_QUEUE_CONFIG_NAME = "deadlines";
 
     private final JdbcDataSources dataSources;
     private final JdbcProviderProperties properties;
     private final Scheduler scheduler;
     private final IdGenerator idGenerator;
+    private final QueueConfigurations queueConfigurations;
 
     public EventStoreFactory(
             JdbcDataSources dataSources,
             JdbcProviderProperties properties,
             Scheduler scheduler,
-            IdGenerator idGenerator
+            IdGenerator idGenerator,
+            QueueConfigurations queueConfigurations
     ) {
         this.dataSources = dataSources;
         this.properties = properties;
         this.scheduler = scheduler;
         this.idGenerator = idGenerator;
+        this.queueConfigurations = queueConfigurations;
     }
 
     public JdbcEventStoreContext create(ProvisionCommand command) {
@@ -75,7 +81,7 @@ public class EventStoreFactory {
         var eventStore = new JdbcEventStore(
                 jdbi,
                 statements,
-                new PgErrorMapper()
+                new MysqlErrorMapper()
         );
 
         var provisioner = new JdbcEventStoreProvisioner(
@@ -96,11 +102,12 @@ public class EventStoreFactory {
                 scheduler
         );
 
+        var queueConfig = queueConfigurations.getQueue("mysql", DEFAULT_DEADLINE_QUEUE_CONFIG_NAME);
         var messageQueueService = new JdbcMessageQueueService.Builder()
                 .jdbi(jdbi)
                 .statements(queueStatements)
                 .idGenerator(idGenerator)
-                .waitStrategy(new SimpleWaitStrategy(Duration.ofSeconds(1)))
+                .waitStrategy(new SimpleWaitStrategy(queueConfig.polIInterval()))
                 .pollStrategy(new MysqlPollStrategy(queueStatements))
                 .deleteStrategy(new BatchDeleteStrategy(queueStatements))
                 .build();
@@ -141,11 +148,12 @@ public class EventStoreFactory {
                 scheduler
         );
 
+        var queueConfig = queueConfigurations.getQueue("postgres", DEFAULT_DEADLINE_QUEUE_CONFIG_NAME);
         var messageQueueService = new JdbcMessageQueueService.Builder()
                 .jdbi(jdbi)
                 .statements(queueStatements)
                 .idGenerator(idGenerator)
-                .waitStrategy(new SimpleWaitStrategy(Duration.ofSeconds(1)))
+                .waitStrategy(new SimpleWaitStrategy(queueConfig.polIInterval()))
                 .pollStrategy(new PgPollStrategy(queueStatements))
                 .deleteStrategy(new DefaultDeleteStrategy(queueStatements))
                 .build();

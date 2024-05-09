@@ -21,7 +21,11 @@ public class ApplicationConfiguration {
 
     @Bean
     public QueueConfiguration scheduledEventsQueueConfig(MubelConfigurationProperties properties) {
-        return new QueueConfiguration("scheduledEvents", properties.scheduledEvents().visibility().timeout());
+        return new QueueConfiguration(
+                "deadlines",
+                properties.deadlines().visibility().timeout(),
+                properties.deadlines().polling().interval()
+        );
     }
 
     @Bean

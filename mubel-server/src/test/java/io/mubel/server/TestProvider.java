@@ -74,7 +74,7 @@ public class TestProvider implements Provider {
                 EventStoreState.PROVISIONED
         ));
         InMemMessageQueueService messageQueueService = new InMemMessageQueueService(DefaultIdGenerator.defaultGenerator(), new QueueConfigurations(List.of(
-                new QueueConfiguration("scheduledEvents", Duration.ofSeconds(1))
+                new QueueConfiguration("deadlines", Duration.ofSeconds(1), Duration.ofSeconds(1))
         )));
 
         var exh = new AsyncExecuteRequestHandler(

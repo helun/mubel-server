@@ -16,6 +16,7 @@ import java.util.concurrent.Executors;
 public class JdbcMessageQueueService implements MessageQueueService {
 
     private final static Logger LOG = LoggerFactory.getLogger(JdbcMessageQueueService.class);
+    private static final long MINIMUM_SLEEP_TIME = 100;
 
     private final Jdbi jdbi;
     private final MessageQueueStatements statements;
@@ -40,21 +41,24 @@ public class JdbcMessageQueueService implements MessageQueueService {
     }
 
     public void start() {
-        try (var es = Executors.newVirtualThreadPerTaskExecutor()) {
-            es.execute(() -> {
-                try {
-                    final var sleepTime = Duration.ofMillis(500);
-                    while (!Thread.currentThread().isInterrupted()) {
-                        enforceVisibilityTimeout();
-                        Thread.sleep(sleepTime);
+        Executors.newVirtualThreadPerTaskExecutor()
+                .execute(() -> {
+                    try {
+                        final var sleepTime = Math.max(visibilityTimeout.toMillis() / 4, MINIMUM_SLEEP_TIME);
+                        while (shouldRun()) {
+                            enforceVisibilityTimeout();
+                            Thread.sleep(sleepTime);
+                        }
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    } catch (Exception e) {
+                        LOG.error("Error enforcing visibility timeout", e);
                     }
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                } catch (Exception e) {
-                    LOG.error("Error enforcing visibility timeout", e);
-                }
-            });
-        }
+                });
+    }
+
+    private boolean shouldRun() {
+        return !Thread.currentThread().isInterrupted();
     }
 
     private void enforceVisibilityTimeout() {

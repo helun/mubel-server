@@ -4,7 +4,8 @@ import java.time.Duration;
 
 public record QueueConfiguration(
         String name,
-        Duration visibilityTimeout
+        Duration visibilityTimeout,
+        Duration polIInterval
 ) {
 
 

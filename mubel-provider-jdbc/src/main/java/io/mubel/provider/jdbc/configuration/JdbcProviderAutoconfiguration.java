@@ -10,6 +10,7 @@ import io.mubel.provider.jdbc.systemdb.*;
 import io.mubel.provider.jdbc.systemdb.pg.PgEventStoreDetailsStatements;
 import io.mubel.provider.jdbc.systemdb.pg.PgJobStatusStatements;
 import io.mubel.server.spi.Provider;
+import io.mubel.server.spi.queue.QueueConfigurations;
 import io.mubel.server.spi.support.IdGenerator;
 import io.mubel.server.spi.systemdb.EventStoreAliasRepository;
 import io.mubel.server.spi.systemdb.EventStoreDetailsRepository;
@@ -118,9 +119,10 @@ public class JdbcProviderAutoconfiguration {
             JdbcDataSources dataSources,
             JdbcProviderProperties properties,
             Scheduler scheduler,
-            IdGenerator idGenerator
+            IdGenerator idGenerator,
+            QueueConfigurations queueConfigurations
     ) {
-        return new EventStoreFactory(dataSources, properties, scheduler, idGenerator);
+        return new EventStoreFactory(dataSources, properties, scheduler, idGenerator, queueConfigurations);
     }
 
     @Bean

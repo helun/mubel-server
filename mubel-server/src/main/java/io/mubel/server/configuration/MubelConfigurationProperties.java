@@ -6,13 +6,18 @@ import java.time.Duration;
 
 @ConfigurationProperties(prefix = "mubel")
 public record MubelConfigurationProperties(
-        ScheduledEvents scheduledEvents
+        QueueConfigParams deadlines
 ) {
 
-    public record ScheduledEvents(
-            Visibility visibility
+    public record QueueConfigParams(
+            Visibility visibility,
+            Polling polling
     ) {
         public record Visibility(Duration timeout) {
+
+        }
+
+        public record Polling(Duration interval) {
 
         }
     }

@@ -15,6 +15,7 @@ import java.util.concurrent.*;
 public class InMemMessageQueueService implements MessageQueueService {
 
     private static final Logger LOG = LoggerFactory.getLogger(InMemMessageQueueService.class);
+    private static final String DEFAULT_DEADLINE_QUEUE_CONFIG_NAME = "deadlines";
 
     private final Map<String, DelayQueue<DelayedMessage>> queues = new ConcurrentHashMap<>();
     private final Map<UUID, ScheduledFuture<?>> messagesInFlight = new ConcurrentHashMap<>();
@@ -55,7 +56,7 @@ public class InMemMessageQueueService implements MessageQueueService {
         return Flux.<Message>create(sink -> {
                     var timeBudget = new TimeBudget(request.timeout());
                     var queue = resolveQueue(request.queueName());
-                    var visibilityTimeout = this.config.getQueue(request.queueName()).visibilityTimeout().toMillis();
+                    var visibilityTimeout = this.config.getQueue(request.queueName(), DEFAULT_DEADLINE_QUEUE_CONFIG_NAME).visibilityTimeout().toMillis();
                     try {
                         LOG.debug("Polling queue {}", request.queueName());
                         int receivedCount = 0;
