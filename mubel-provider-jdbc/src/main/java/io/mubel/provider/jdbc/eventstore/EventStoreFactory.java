@@ -110,6 +110,7 @@ public class EventStoreFactory {
                 .waitStrategy(new SimpleWaitStrategy(queueConfig.polIInterval()))
                 .pollStrategy(new MysqlPollStrategy(queueStatements))
                 .deleteStrategy(new BatchDeleteStrategy(queueStatements))
+                .delayOffsetMs(-400)
                 .build();
 
         return new JdbcEventStoreContext(
@@ -156,6 +157,7 @@ public class EventStoreFactory {
                 .waitStrategy(new SimpleWaitStrategy(queueConfig.polIInterval()))
                 .pollStrategy(new PgPollStrategy(queueStatements))
                 .deleteStrategy(new DefaultDeleteStrategy(queueStatements))
+                .delayOffsetMs(-500)
                 .build();
 
         return new JdbcEventStoreContext(

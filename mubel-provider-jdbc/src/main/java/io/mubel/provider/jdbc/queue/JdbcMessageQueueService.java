@@ -25,6 +25,7 @@ public class JdbcMessageQueueService implements MessageQueueService {
     private final PollStrategy pollStrategy;
     private final Duration visibilityTimeout;
     private final DeleteStrategy deleteStrategy;
+    private final int delayOffsetMs;
 
     public static JdbcMessageQueueService.Builder builder() {
         return new JdbcMessageQueueService.Builder();
@@ -38,6 +39,7 @@ public class JdbcMessageQueueService implements MessageQueueService {
         this.visibilityTimeout = b.visibilityTimeout;
         this.pollStrategy = b.pollStrategy;
         this.deleteStrategy = b.deleteStrategy;
+        this.delayOffsetMs = b.delayOffsetMs;
     }
 
     public void start() {
@@ -74,14 +76,17 @@ public class JdbcMessageQueueService implements MessageQueueService {
     @Override
     public void send(SendRequest request) {
         LOG.debug("sending message: {}", request);
-        jdbi.useTransaction(h -> h.createUpdate(statements.insert())
-                .bind(0, idGenerator.generate())
-                .bind(1, request.queueName())
-                .bind(2, request.type())
-                .bind(3, request.payload())
-                .bind(4, request.delayMillis())
-                .bind(5, request.delayMillis())
-                .execute());
+        jdbi.useTransaction(h -> {
+            long effectiveDelay = effectiveDelay(request.delayMillis());
+            h.createUpdate(statements.insert())
+                    .bind(0, idGenerator.generate())
+                    .bind(1, request.queueName())
+                    .bind(2, request.type())
+                    .bind(3, request.payload())
+                    .bind(4, effectiveDelay)
+                    .bind(5, effectiveDelay)
+                    .execute();
+        });
     }
 
     @Override
@@ -90,16 +95,21 @@ public class JdbcMessageQueueService implements MessageQueueService {
         jdbi.useTransaction(h -> {
             var batch = h.prepareBatch(statements.insert());
             for (var entry : request.entries()) {
+                long effectiveDelay = effectiveDelay(entry.delayMillis());
                 batch.bind(0, idGenerator.generate())
                         .bind(1, request.queueName())
                         .bind(2, entry.type())
                         .bind(3, entry.payload())
-                        .bind(4, entry.delayMillis())
-                        .bind(5, entry.delayMillis())
+                        .bind(4, effectiveDelay)
+                        .bind(5, effectiveDelay)
                         .add();
             }
             batch.execute();
         });
+    }
+
+    private long effectiveDelay(long delay) {
+        return delay + this.delayOffsetMs;
     }
 
     @Override
@@ -144,6 +154,7 @@ public class JdbcMessageQueueService implements MessageQueueService {
         private PollStrategy pollStrategy;
         private Duration visibilityTimeout = Duration.ofSeconds(30);
         private DeleteStrategy deleteStrategy;
+        private int delayOffsetMs = 0;
 
         public Builder jdbi(Jdbi jdbi) {
             this.jdbi = jdbi;
@@ -177,6 +188,11 @@ public class JdbcMessageQueueService implements MessageQueueService {
 
         public Builder deleteStrategy(DeleteStrategy deleteStrategy) {
             this.deleteStrategy = deleteStrategy;
+            return this;
+        }
+
+        public Builder delayOffsetMs(int delayOffsetMs) {
+            this.delayOffsetMs = delayOffsetMs;
             return this;
         }
 

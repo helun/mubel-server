@@ -27,7 +27,7 @@ public class PgPollStrategy implements PollStrategy {
     }
 
     private int doPoll(QueuePollContext context, Instant expiresAt) {
-        LOG.debug("Polling with message limit {}", context.messageLimit());
+        LOG.trace("Polling with message limit {}", context.messageLimit());
         return context.jdbi().withHandle(h -> h.createQuery(statements.poll())
                 .bind(0, context.queueName())
                 .bind(1, context.messageLimit())
