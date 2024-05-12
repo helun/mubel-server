@@ -52,33 +52,39 @@ public record BatchSendRequest(
             long delayMillis
     ) {
 
-        public static BatchEntryBuilder builder() {
-            return new BatchEntryBuilder();
+        public static Builder builder() {
+            return new Builder();
         }
 
-        public static class BatchEntryBuilder {
+        public static class Builder {
             private String type;
             private byte[] payload;
             private long delayMillis;
 
-            public BatchEntryBuilder type(String type) {
+            public Builder type(String type) {
                 this.type = type;
                 return this;
             }
 
-            public BatchEntryBuilder payload(byte[] payload) {
+            public Builder payload(byte[] payload) {
                 this.payload = payload;
                 return this;
             }
 
-            public BatchEntryBuilder payload(String payload) {
+            public Builder payload(String payload) {
                 this.payload = payload.getBytes();
                 return this;
             }
 
-            public BatchEntryBuilder delayMillis(long delayMillis) {
+            public Builder delayMillis(long delayMillis) {
                 this.delayMillis = delayMillis;
                 return this;
+            }
+
+            public void clear() {
+                type = null;
+                payload = null;
+                delayMillis = 0;
             }
 
             public BatchEntry build() {

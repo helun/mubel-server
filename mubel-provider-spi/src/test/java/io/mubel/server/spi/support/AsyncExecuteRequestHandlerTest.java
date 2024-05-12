@@ -2,6 +2,7 @@ package io.mubel.server.spi.support;
 
 import io.mubel.api.grpc.v1.events.*;
 import io.mubel.server.spi.eventstore.EventStore;
+import io.mubel.server.spi.queue.BatchSendRequest;
 import io.mubel.server.spi.queue.MessageQueueService;
 import io.mubel.server.spi.queue.SendRequest;
 import org.junit.jupiter.api.AfterEach;
@@ -66,14 +67,18 @@ class AsyncExecuteRequestHandlerTest {
     @Test
     void queued_operations_are_joined_in_single_request() {
         var eventId1 = UUID.randomUUID().toString();
+        var deadlineIdTargetId1 = UUID.randomUUID().toString();
         var r1 = ExecuteRequest.newBuilder()
                 .setRequestId(ESID)
                 .addOperation(appendOperation(eventId1))
+                .addOperation(scheduleDeadlineOperation(deadlineIdTargetId1))
                 .build();
         var eventId2 = UUID.randomUUID().toString();
+        var deadlineIdTargetId2 = UUID.randomUUID().toString();
         var r2 = ExecuteRequest.newBuilder()
                 .setRequestId(ESID)
                 .addOperation(appendOperation(eventId2))
+                .addOperation(scheduleDeadlineOperation(deadlineIdTargetId2))
                 .build();
         var r1Future = handler.handle(r1);
         var r2Future = handler.handle(r2);
@@ -82,15 +87,28 @@ class AsyncExecuteRequestHandlerTest {
         handler.start();
         assertThat(r1Future).succeedsWithin(Duration.ofMillis(100));
         assertThat(r2Future).succeedsWithin(Duration.ofMillis(100));
-        var captor = ArgumentCaptor.forClass(AppendOperation.class);
-        verify(eventStore).append(captor.capture());
-        assertThat(captor.getValue()
+
+        var appendCaptor = ArgumentCaptor.forClass(AppendOperation.class);
+        verify(eventStore).append(appendCaptor.capture());
+        assertThat(appendCaptor.getValue()
                 .getEventList())
                 .as("all events are appended in same operation")
                 .hasSize(2)
                 .map(EventDataInput::getId)
                 .as("events are appended in queue order")
                 .containsExactly(eventId1, eventId2);
+
+        var deadlineCaptor = ArgumentCaptor.forClass(BatchSendRequest.class);
+        verify(messageQueueService, times(1)).send(deadlineCaptor.capture());
+        assertThat(deadlineCaptor.getValue().entries())
+                .as("all deadlines are sent in same batch")
+                .hasSize(2)
+                .map(BatchSendRequest.BatchEntry::payload)
+                .map(Deadline::parseFrom)
+                .map(dl -> dl.getTargetEntity().getId())
+                .as("deadlines are sent in queue order")
+                .containsExactly(deadlineIdTargetId1, deadlineIdTargetId2);
+
     }
 
     private static Operation.Builder appendOperation() {
@@ -116,13 +134,17 @@ class AsyncExecuteRequestHandlerTest {
     }
 
     private static Operation.Builder scheduleDeadlineOperation() {
+        return scheduleDeadlineOperation(UUID.randomUUID().toString());
+    }
+
+    private static Operation.Builder scheduleDeadlineOperation(String targetId) {
         return Operation.newBuilder()
                 .setScheduleDeadline(ScheduleDeadlineOperation.newBuilder()
                         .setId(UUID.randomUUID().toString())
                         .setDeadline(Deadline.newBuilder()
                                 .setType("test-dl")
                                 .setTargetEntity(EntityReference.newBuilder()
-                                        .setId("test-id")
+                                        .setId(targetId)
                                         .setType("test-entity")
                                 )
                         )
