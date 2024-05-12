@@ -136,6 +136,21 @@ class AsyncExecuteRequestHandlerTest {
                 .containsExactly(eventId1, eventId2);
     }
 
+    @Test
+    void multiple_cancel_ops_are_joined_into_a_single_operation() throws Exception {
+        handler.start();
+        var cancelId1 = UUID.randomUUID();
+        var cancelId2 = UUID.randomUUID();
+        var r1 = ExecuteRequest.newBuilder()
+                .setRequestId(ESID)
+                .addOperation(cancelScheduledOperation(cancelId1))
+                .addOperation(cancelScheduledOperation(cancelId2))
+                .build();
+        handler.handle(r1).get();
+
+        verify(messageQueueService).delete(List.of(cancelId1, cancelId2));
+    }
+
     private static Operation.Builder appendOperation() {
         return appendOperation(UUID.randomUUID().toString());
     }

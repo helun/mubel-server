@@ -34,8 +34,7 @@ public record BatchSendRequest(
             return entries != null && !entries.isEmpty();
         }
 
-        public Builder clear() {
-            queueName = null;
+        public Builder clearEntries() {
             entries = null;
             return this;
         }
