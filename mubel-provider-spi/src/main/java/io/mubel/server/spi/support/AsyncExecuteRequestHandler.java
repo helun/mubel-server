@@ -11,7 +11,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -49,7 +48,7 @@ public class AsyncExecuteRequestHandler implements ExecuteRequestHandler {
     public void start() {
         LOG.debug("starting execute request handler. queue size: {}", requestQueue.size());
         worker.execute(() -> {
-            var requestBatch = new ExecuteRequestBatch(esid);
+            var requestBatch = new ExecuteRequestBatch(esid, publishDelayCalculatorFn);
             while (shouldRun) {
                 try {
                     requestBatch.add(requestQueue.take());
@@ -87,10 +86,12 @@ public class AsyncExecuteRequestHandler implements ExecuteRequestHandler {
 
     private void execute(ExecuteRequestBatch rb) {
         var joined = rb.joinedRequest();
+        for (var request : rb.sendRequest()) {
+            scheduledEventsQueue.send(request);
+        }
         for (var operation : joined.getOperationList()) {
             handleOperation(joined, operation);
         }
-        rb.deadlinesSendRequest().ifPresent(scheduledEventsQueue::send);
     }
 
     private void handleOperation(ExecuteRequest request, Operation operation) {
@@ -142,13 +143,19 @@ public class AsyncExecuteRequestHandler implements ExecuteRequestHandler {
         private static final int MAX_SCHEDULE_OP_SIZE = 1000;
         private static final int MAX_APPEND_OP_SIZE = 1000;
         private static final int MAX_REQUEST_SIZE = 5;
+        private static final int DEFAULT_APPENDS_SIZE = 256;
+        private static final int DEFAULT_SCHEDULED_SIZE = 16;
 
         private final List<RequestQueue.Entry<ExecuteRequest, Void>> requestBuffer = new ArrayList<>(MAX_REQUEST_SIZE);
         private final ExecuteRequest.Builder joinedRequest = ExecuteRequest.newBuilder();
         private final BatchSendRequest.BatchEntry.Builder batchEntryBuilder = BatchSendRequest.BatchEntry.builder();
-        private BatchSendRequest deadlineBatch;
-        private ArrayList<EventDataInput> appends;
-        private ArrayList<BatchSendRequest.BatchEntry> deadlines;
+        private final LongUnaryOperator publishDelayCalculatorFn;
+        private final BatchSendRequest.Builder deadlineBatch = BatchSendRequest.builder();
+        private final BatchSendRequest.Builder scheduledEventsBatch = BatchSendRequest.builder();
+        private final List<BatchSendRequest> sendRequests = new ArrayList<>(2);
+        private final ArrayList<EventDataInput> appends = new ArrayList<>(DEFAULT_APPENDS_SIZE);
+        private final ArrayList<BatchSendRequest.BatchEntry> deadlines = new ArrayList<>(DEFAULT_SCHEDULED_SIZE);
+        private final ArrayList<BatchSendRequest.BatchEntry> scheduledEvents = new ArrayList<>(DEFAULT_SCHEDULED_SIZE);
 
         private int appendSize = 0;
         private int appendOps = 0;
@@ -157,8 +164,9 @@ public class AsyncExecuteRequestHandler implements ExecuteRequestHandler {
         private int cancelOps = 0;
         private int cancelSize = 0;
 
-        public ExecuteRequestBatch(String esid) {
+        public ExecuteRequestBatch(String esid, LongUnaryOperator publishDelayCalculatorFn) {
             joinedRequest.setEsid(esid);
+            this.publishDelayCalculatorFn = publishDelayCalculatorFn;
         }
 
         public void add(RequestQueue.Entry<ExecuteRequest, Void> entry) {
@@ -198,12 +206,13 @@ public class AsyncExecuteRequestHandler implements ExecuteRequestHandler {
             }
             List<EventDataInput> appends = getAppendList();
             List<BatchSendRequest.BatchEntry> deadlines = getDeadlines();
+            List<BatchSendRequest.BatchEntry> scheduledEvents = getScheduledEvents();
             for (var rrb : requestBuffer) {
                 ExecuteRequest request = rrb.request();
                 for (var operation : request.getOperationList()) {
                     switch (operation.getOperationCase()) {
                         case APPEND -> appends.addAll(operation.getAppend().getEventList());
-                        case SCHEDULEEVENT -> joinedRequest.addOperation(operation);
+                        case SCHEDULEEVENT -> scheduledEvents.add(toBatchEntry(operation.getScheduleEvent()));
                         case SCHEDULEDEADLINE -> deadlines.add(toBatchEntry(operation.getScheduleDeadline()));
                         case CANCEL -> joinedRequest.addOperation(operation);
                         case OPERATION_NOT_SET -> throw new IllegalArgumentException("Operation must be specified");
@@ -218,30 +227,39 @@ public class AsyncExecuteRequestHandler implements ExecuteRequestHandler {
                                 .build()));
             }
             if (deadlineSize > 0) {
-                deadlineBatch = BatchSendRequest.builder()
+                sendRequests.add(deadlineBatch
                         .queueName(joinedRequest.getEsid() + "-dl")
                         .entries(deadlines)
-                        .build();
+                        .build());
+            }
+            if (scheduledSize > 0) {
+                sendRequests.add(scheduledEventsBatch
+                        .queueName(joinedRequest.getEsid() + "-sc")
+                        .entries(scheduledEvents)
+                        .build());
             }
             LOG.debug("batch size {}, append size: {}, cancel size: {}, deadline size: {}, schedule size: {}", requestBuffer.size(), appendSize, cancelSize, deadlineSize, scheduledSize);
             return joinedRequest.build();
         }
 
-        private List<BatchSendRequest.BatchEntry> getDeadlines() {
-            if (deadlines == null) {
-                deadlines = new ArrayList<>(deadlineSize);
-                return deadlines;
+        private List<BatchSendRequest.BatchEntry> getScheduledEvents() {
+            if (scheduledSize > DEFAULT_SCHEDULED_SIZE) {
+                scheduledEvents.ensureCapacity(scheduledSize);
             }
-            deadlines.ensureCapacity(deadlineSize);
+            return scheduledEvents;
+        }
+
+        private List<BatchSendRequest.BatchEntry> getDeadlines() {
+            if (deadlineSize > DEFAULT_APPENDS_SIZE) {
+                deadlines.ensureCapacity(deadlineSize);
+            }
             return deadlines;
         }
 
         private List<EventDataInput> getAppendList() {
-            if (appends == null) {
-                appends = new ArrayList<>(appendSize);
-                return appends;
+            if (appendSize > DEFAULT_APPENDS_SIZE) {
+                appends.ensureCapacity(appendSize);
             }
-            appends.ensureCapacity(appendSize);
             return appends;
         }
 
@@ -250,18 +268,36 @@ public class AsyncExecuteRequestHandler implements ExecuteRequestHandler {
             return batchEntryBuilder
                     .payload(scheduleDeadline.getDeadline().toByteArray())
                     .type("deadline")
+                    .delayMillis(publishDelayCalculatorFn.applyAsLong(scheduleDeadline.getPublishTime()))
+                    .build();
+        }
+
+        private BatchSendRequest.BatchEntry toBatchEntry(ScheduleEventOperation operation) {
+            batchEntryBuilder.clear();
+            return batchEntryBuilder
+                    .payload(operation.getEvent().toByteArray())
+                    .type(operation.getEvent().getType())
+                    .delayMillis(publishDelayCalculatorFn.applyAsLong(operation.getPublishTime()))
+                    .type(operation.getEvent().getType())
                     .build();
         }
 
         public void reset() {
             requestBuffer.clear();
+            appends.clear();
+            deadlines.clear();
+            scheduledEvents.clear();
             joinedRequest.clear();
             batchEntryBuilder.clear();
-            deadlineBatch = null;
+            deadlineBatch.clear();
+            scheduledEventsBatch.clear();
+            sendRequests.clear();
             appendSize = 0;
+            appendOps = 0;
             deadlineSize = 0;
             scheduledSize = 0;
             cancelSize = 0;
+            cancelOps = 0;
         }
 
         public void fail(Exception e) {
@@ -272,8 +308,8 @@ public class AsyncExecuteRequestHandler implements ExecuteRequestHandler {
             requestBuffer.forEach(r -> r.future().complete(null));
         }
 
-        public Optional<BatchSendRequest> deadlinesSendRequest() {
-            return Optional.ofNullable(deadlineBatch);
+        public List<BatchSendRequest> sendRequest() {
+            return sendRequests;
         }
     }
 }

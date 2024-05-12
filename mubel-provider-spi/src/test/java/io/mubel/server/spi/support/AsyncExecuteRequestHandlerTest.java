@@ -108,7 +108,32 @@ class AsyncExecuteRequestHandlerTest {
                 .map(dl -> dl.getTargetEntity().getId())
                 .as("deadlines are sent in queue order")
                 .containsExactly(deadlineIdTargetId1, deadlineIdTargetId2);
+    }
 
+    @Test
+    void multiple_scheduled_event_ops_in_same_request_are_joined_in_a_single_batch_request() {
+        handler.start();
+        var eventId1 = UUID.randomUUID().toString();
+        var eventId2 = UUID.randomUUID().toString();
+        var r1 = ExecuteRequest.newBuilder()
+                .setRequestId(ESID)
+                .addOperation(scheduleEventOperation(eventId1))
+                .addOperation(scheduleEventOperation(eventId2))
+                .build();
+        var r1Future = handler.handle(r1);
+
+        assertThat(r1Future).succeedsWithin(Duration.ofMillis(100));
+
+        var scheduleCaptor = ArgumentCaptor.forClass(BatchSendRequest.class);
+        verify(messageQueueService, times(1)).send(scheduleCaptor.capture());
+        assertThat(scheduleCaptor.getValue().entries())
+                .as("all schedules are sent in same batch")
+                .hasSize(2)
+                .map(BatchSendRequest.BatchEntry::payload)
+                .map(EventDataInput::parseFrom)
+                .map(EventDataInput::getId)
+                .as("schedules are sent in queue order")
+                .containsExactly(eventId1, eventId2);
     }
 
     private static Operation.Builder appendOperation() {
@@ -153,10 +178,14 @@ class AsyncExecuteRequestHandlerTest {
     }
 
     private static Operation.Builder scheduleEventOperation() {
+        return scheduleEventOperation(UUID.randomUUID().toString());
+    }
+
+    private static Operation.Builder scheduleEventOperation(String eventId) {
         return Operation.newBuilder()
                 .setScheduleEvent(ScheduleEventOperation.newBuilder()
                         .setEvent(EventDataInput.newBuilder()
-                                .setId(UUID.randomUUID().toString())
+                                .setId(eventId)
                                 .setType("test-type")
                                 .setStreamId(UUID.randomUUID().toString())
                         )
