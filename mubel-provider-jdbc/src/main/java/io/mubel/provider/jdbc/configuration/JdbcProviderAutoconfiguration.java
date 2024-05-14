@@ -10,6 +10,7 @@ import io.mubel.provider.jdbc.systemdb.*;
 import io.mubel.provider.jdbc.systemdb.pg.PgEventStoreDetailsStatements;
 import io.mubel.provider.jdbc.systemdb.pg.PgJobStatusStatements;
 import io.mubel.server.spi.Provider;
+import io.mubel.server.spi.model.BackendType;
 import io.mubel.server.spi.queue.QueueConfigurations;
 import io.mubel.server.spi.support.IdGenerator;
 import io.mubel.server.spi.systemdb.EventStoreAliasRepository;
@@ -49,12 +50,16 @@ public class JdbcProviderAutoconfiguration {
             hikariConfig.setJdbcUrl(config.getUrl());
             hikariConfig.setUsername(config.getUsername());
             hikariConfig.setPassword(config.getPassword());
+            if (MubelDataSource.backendType(config.getUrl()) == BackendType.PG) {
+                hikariConfig.addDataSourceProperty("rewriteBatchedInserts", "true");
+            }
 
             whenPositive(config.getMaximumPoolSize(), hikariConfig::setMaximumPoolSize);
             whenPositive(config.getConnectionTimeout(), hikariConfig::setConnectionTimeout);
             whenPositive(config.getIdleTimeout(), hikariConfig::setIdleTimeout);
             whenPositive(config.getMaxLifetime(), hikariConfig::setMaxLifetime);
-            dataSources.add(config.getName(), MubelDataSource.of(new HikariDataSource(hikariConfig), config.getUrl()));
+            var ds = new HikariDataSource(hikariConfig);
+            dataSources.add(config.getName(), MubelDataSource.of(ds, config.getUrl()));
         });
         return dataSources;
     }

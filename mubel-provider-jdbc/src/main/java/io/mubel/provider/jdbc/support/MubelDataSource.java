@@ -13,7 +13,7 @@ public record MubelDataSource(
         return new MubelDataSource(dataSource, backendType(jdbcUrl));
     }
 
-    private static BackendType backendType(String jdbcUrl) {
+    public static BackendType backendType(String jdbcUrl) {
         if (jdbcUrl.startsWith("jdbc:postgresql")) {
             return BackendType.PG;
         } else if (jdbcUrl.startsWith("jdbc:mysql")) {
