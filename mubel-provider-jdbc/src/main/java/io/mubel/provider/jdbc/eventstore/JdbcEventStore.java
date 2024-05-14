@@ -1,13 +1,13 @@
 package io.mubel.provider.jdbc.eventstore;
 
-import io.mubel.api.grpc.v1.events.AppendOperation;
-import io.mubel.api.grpc.v1.events.EventData;
-import io.mubel.api.grpc.v1.events.GetEventsRequest;
-import io.mubel.api.grpc.v1.events.GetEventsResponse;
+import io.mubel.api.grpc.v1.events.*;
 import io.mubel.api.grpc.v1.server.EventStoreSummary;
 import io.mubel.server.spi.eventstore.EventStore;
+import org.jdbi.v3.core.Handle;
 import org.jdbi.v3.core.Jdbi;
+import org.jdbi.v3.core.result.ResultIterable;
 import org.jdbi.v3.core.statement.Query;
+import reactor.core.publisher.Flux;
 
 import java.time.Clock;
 import java.util.ArrayList;
@@ -94,6 +94,14 @@ public class JdbcEventStore implements EventStore {
     }
 
     @Override
+    public Flux<EventData> getStream(GetEventsRequest request) {
+        return switch (request.getSelector().getByCase()) {
+            case STREAM -> streamByStream(request);
+            case ALL, BY_NOT_SET -> streamAll(request);
+        };
+    }
+
+    @Override
     public void truncate() {
         jdbi.useHandle(h -> statements.truncate().forEach(h::execute));
     }
@@ -115,27 +123,30 @@ public class JdbcEventStore implements EventStore {
         );
     }
 
+    private Flux<EventData> streamByStream(GetEventsRequest request) {
+        return Flux.create(sink -> {
+            try {
+                final var selector = request.getSelector().getStream();
+                final var nnStreamId = requireNotBlank(selector.getStreamId(), "streamId may not be null");
+                final int sizeLimit = statements.parseSizeLimit(request.getSize());
+                jdbi.useHandle(h -> {
+                    setupByStreamQuery(h, selector, nnStreamId, sizeLimit)
+                            .useStream(s -> s.forEach(sink::next));
+                });
+                sink.complete();
+            } catch (Throwable e) {
+                sink.error(e);
+            }
+        });
+    }
+
     private GetEventsResponse getByStream(GetEventsRequest request) {
         var selector = request.getSelector().getStream();
         final var nnStreamId = requireNotBlank(selector.getStreamId(), "streamId may not be null");
         final int sizeLimit = statements.parseSizeLimit(request.getSize());
-        final var events = jdbi.withHandle(h -> {
-            final Query query;
-            if (selector.getToRevision() == 0) {
-                query = h.createQuery(statements.getSql())
-                        .bind(0, statements.convertUUID(nnStreamId))
-                        .bind(1, selector.getFromRevision())
-                        .bind(2, sizeLimit);
-
-            } else {
-                query = h.createQuery(statements.getMaxRevisionSql())
-                        .bind(0, statements.convertUUID(nnStreamId))
-                        .bind(1, selector.getFromRevision())
-                        .bind(2, selector.getToRevision())
-                        .bind(3, sizeLimit);
-            }
-            return query.map(new EventDataRowMapper()).list();
-        });
+        final var events = jdbi.withHandle(h ->
+                setupByStreamQuery(h, selector, nnStreamId, sizeLimit).list()
+        );
         return GetEventsResponse.newBuilder()
                 .addAllEvent(events)
                 .setSize(events.size())
@@ -143,17 +154,51 @@ public class JdbcEventStore implements EventStore {
                 .build();
     }
 
+    private ResultIterable<EventData> setupByStreamQuery(Handle h, StreamSelector selector, String nnStreamId, int sizeLimit) {
+        final Query query;
+        if (selector.getToRevision() == 0) {
+            query = h.createQuery(statements.getSql())
+                    .bind(0, statements.convertUUID(nnStreamId))
+                    .bind(1, selector.getFromRevision())
+                    .bind(2, sizeLimit);
+
+        } else {
+            query = h.createQuery(statements.getMaxRevisionSql())
+                    .bind(0, statements.convertUUID(nnStreamId))
+                    .bind(1, selector.getFromRevision())
+                    .bind(2, selector.getToRevision())
+                    .bind(3, sizeLimit);
+        }
+        return query.map(new EventDataRowMapper());
+    }
+
     private GetEventsResponse getAll(GetEventsRequest request) {
         final var selector = request.getSelector().getAll();
-        final var events = jdbi.withHandle(h ->
-                h.createQuery(statements.pagedReplaySql())
-                        .bind(0, selector.getFromSequenceNo())
-                        .bind(1, statements.parseSizeLimit(request.getSize()))
-                        .map(new EventDataRowMapper())
-                        .list());
+        final var events = jdbi.withHandle(h -> setupGetAllQuery(request, h, selector).list());
         return GetEventsResponse.newBuilder()
                 .addAllEvent(events)
                 .setSize(events.size())
                 .build();
+    }
+
+    private Flux<EventData> streamAll(GetEventsRequest request) {
+        return Flux.create(sink -> {
+            try {
+                final var selector = request.getSelector().getAll();
+                jdbi.useHandle(h -> {
+                    setupGetAllQuery(request, h, selector).useStream(s -> s.forEach(sink::next));
+                });
+                sink.complete();
+            } catch (Throwable e) {
+                sink.error(e);
+            }
+        });
+    }
+
+    private ResultIterable<EventData> setupGetAllQuery(GetEventsRequest request, Handle h, AllSelector selector) {
+        return h.createQuery(statements.pagedReplaySql())
+                .bind(0, selector.getFromSequenceNo())
+                .bind(1, statements.parseSizeLimit(request.getSize()))
+                .map(new EventDataRowMapper());
     }
 }

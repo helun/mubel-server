@@ -40,6 +40,11 @@ public class GrpcMubelEventsApi extends MubelEventsServiceGrpc.MubelEventsServic
     }
 
     @Override
+    public void getEventStream(GetEventsRequest request, StreamObserver<EventData> responseObserver) {
+        eventApiService.getEventStream(request, responseObserver);
+    }
+
+    @Override
     public void subscribe(SubscribeRequest request, StreamObserver<EventData> responseObserver) {
         subscribeApiService.subscribe(request, responseObserver);
     }

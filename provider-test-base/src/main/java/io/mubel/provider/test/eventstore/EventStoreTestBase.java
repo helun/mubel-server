@@ -200,6 +200,23 @@ public abstract class EventStoreTestBase {
     }
 
     @Nested
+    class Get_stream {
+        @Test
+        void without_streamId_returns_events_in_global_order() {
+            var count = 10;
+            appendEvents(count);
+
+            var stream = eventStore.getStream(
+                    GetEventsRequest.newBuilder()
+                            .setEsid(esid())
+                            .setSize(100)
+                            .build()
+            );
+            assertThat(stream.collectList().block()).hasSize(count);
+        }
+    }
+
+    @Nested
     class Summary {
 
         @Test

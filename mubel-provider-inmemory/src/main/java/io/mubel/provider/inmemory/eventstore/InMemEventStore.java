@@ -32,6 +32,14 @@ public class InMemEventStore implements EventStore, LiveEventsService {
 
     @Override
     public GetEventsResponse get(GetEventsRequest request) {
+        final var result = setupEventDataStream(request).toList();
+        return GetEventsResponse.newBuilder()
+                .addAllEvent(result)
+                .setSize(result.size())
+                .build();
+    }
+
+    private Stream<EventData> setupEventDataStream(GetEventsRequest request) {
         var stream = switch (request.getSelector().getByCase()) {
             case STREAM -> getByStream(request.getSelector().getStream());
             case ALL -> getAll(request.getSelector().getAll());
@@ -41,11 +49,12 @@ public class InMemEventStore implements EventStore, LiveEventsService {
         if (request.getSize() > 0) {
             stream = stream.limit(request.getSize());
         }
-        final var result = stream.toList();
-        return GetEventsResponse.newBuilder()
-                .addAllEvent(result)
-                .setSize(result.size())
-                .build();
+        return stream;
+    }
+
+    @Override
+    public Flux<EventData> getStream(GetEventsRequest validated) {
+        return Flux.fromStream(setupEventDataStream(validated));
     }
 
     private Stream<EventData> getByStream(StreamSelector selector) {
