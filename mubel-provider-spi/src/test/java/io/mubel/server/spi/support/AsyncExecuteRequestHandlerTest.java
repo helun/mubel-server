@@ -2,9 +2,9 @@ package io.mubel.server.spi.support;
 
 import io.mubel.api.grpc.v1.events.*;
 import io.mubel.server.spi.eventstore.EventStore;
+import io.mubel.server.spi.execute.AsyncExecuteRequestHandler;
 import io.mubel.server.spi.queue.BatchSendRequest;
 import io.mubel.server.spi.queue.MessageQueueService;
-import io.mubel.server.spi.queue.SendRequest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -61,7 +61,7 @@ class AsyncExecuteRequestHandlerTest {
                 .succeedsWithin(Duration.ofMillis(100));
         verify(eventStore).append(request.getOperation(0).getAppend());
         verify(messageQueueService).delete(List.of(cancelId));
-        verify(messageQueueService, times(2)).send(any(SendRequest.class));
+        verify(messageQueueService, times(2)).send(any(BatchSendRequest.class));
     }
 
     @Test
