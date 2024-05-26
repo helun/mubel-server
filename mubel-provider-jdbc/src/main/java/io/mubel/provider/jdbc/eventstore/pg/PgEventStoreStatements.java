@@ -2,44 +2,44 @@ package io.mubel.provider.jdbc.eventstore.pg;
 
 import io.mubel.provider.jdbc.eventstore.EventStoreStatements;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class PgEventStoreStatements extends EventStoreStatements {
 
     private static final String DDL_TPL = """
             CREATE SCHEMA %1$s;
-                        
+
             CREATE TABLE %1$s.request_log (
                 id UUID PRIMARY KEY,
                 created_at timestamp NOT NULL DEFAULT now()
               );
-                        
+
             CREATE TABLE %1$s.events (
               id UUID PRIMARY KEY,
               stream_id UUID NOT NULL,
-              version INTEGER NOT NULL,
+              revision INTEGER NOT NULL,
               type TEXT NOT NULL,
               created_at bigint NOT NULL,
               data BYTEA,
               meta_data BYTEA
             );
-                        
-            CREATE UNIQUE INDEX events_sid_ver ON %1$s.events(stream_id, version);
-                        
+
+            CREATE UNIQUE INDEX events_sid_ver ON %1$s.events(stream_id, revision);
+
             CREATE TABLE %1$s.all_events_subscription (
                 seq_id SERIAL8 PRIMARY KEY,
                 event_id UUID NOT NULL
             );
-                        
+
             CREATE OR REPLACE FUNCTION %1$s_insert_event_seq() RETURNS TRIGGER AS $$
             BEGIN
                 INSERT INTO %1$s.all_events_subscription(event_id) VALUES (NEW.id);
                 RETURN NEW;
             END;
             $$ LANGUAGE plpgsql;
-                        
+
             CREATE OR REPLACE FUNCTION %1$s_notify_live() RETURNS TRIGGER AS $$
             DECLARE
                 payload TEXT;
@@ -48,11 +48,11 @@ public class PgEventStoreStatements extends EventStoreStatements {
                 RETURN NEW;
             END;
             $$ LANGUAGE plpgsql;
-                        
+
             CREATE TRIGGER %1$s_trigger_after_insert_event
             AFTER INSERT ON %1$s.events
             FOR EACH ROW EXECUTE FUNCTION %1$s_insert_event_seq();
-                        
+
             CREATE TRIGGER %1$s_trigger_after_insert_all_sub
             AFTER INSERT ON %1$s.all_events_subscription
             FOR EACH ROW EXECUTE FUNCTION %1$s_notify_live();
@@ -62,19 +62,19 @@ public class PgEventStoreStatements extends EventStoreStatements {
             INSERT INTO %s.events(
               id,
               stream_id,
-              version,
+              revision,
               type,
               created_at,
               data,
               meta_data
               ) VALUES (?,?,?,?,?,?,?)
             """;
-    
+
     private static final String SELECT_EVENTS_TPL = """
             SELECT
               e.id,
               e.stream_id,
-              e.version,
+              e.revision,
               e.type,
               e.created_at,
               e.data,
@@ -85,17 +85,17 @@ public class PgEventStoreStatements extends EventStoreStatements {
             ,0 AS seq_id
             FROM %1$s.events e
             WHERE stream_id = ?
-            AND version >= ?
-            ORDER BY version
+            AND revision >= ?
+            ORDER BY revision
             LIMIT ?
             """;
 
-    private static final String GET_MAX_VERSION_SQL_TPL = SELECT_EVENTS_TPL + """
+    private static final String GET_MAX_REVISION_SQL_TPL = SELECT_EVENTS_TPL + """
             ,0 AS seq_id
             FROM %1$s.events e
             WHERE stream_id = ?
-            AND version BETWEEN ? AND ?
-            ORDER BY version
+            AND revision BETWEEN ? AND ?
+            ORDER BY revision
             LIMIT ?
             """;
 
@@ -134,7 +134,7 @@ public class PgEventStoreStatements extends EventStoreStatements {
                 APPEND_SQL_TPL.formatted(eventStoreName),
                 LOG_REQUEST_SQL_TPL.formatted(eventStoreName),
                 GET_SQL_TPL.formatted(eventStoreName),
-                GET_MAX_VERSION_SQL_TPL.formatted(eventStoreName),
+                GET_MAX_REVISION_SQL_TPL.formatted(eventStoreName),
                 PAGED_REPLAY_SQL_TPL.formatted(eventStoreName),
                 List.of(DDL_TPL.formatted(eventStoreName)),
                 List.of(DROP_SQL.formatted(eventStoreName))
@@ -150,7 +150,7 @@ public class PgEventStoreStatements extends EventStoreStatements {
         return List.of(TRUNCATE_SQL_TPL.formatted(eventStoreName()));
     }
 
-    public static boolean isVersionConflictError(String violatedConstraint) {
+    public static boolean isRevisionConflictError(String violatedConstraint) {
         return Objects.requireNonNull(violatedConstraint).contains("events_sid_ver");
     }
 
@@ -177,5 +177,30 @@ public class PgEventStoreStatements extends EventStoreStatements {
     @Override
     public Object convertUUID(String value) {
         return UUID.fromString(value);
+    }
+
+    @Override
+    public Iterable<?> convertUUIDs(Collection<String> input) {
+        var result = new ArrayList<UUID>(input.size());
+        for (var id : input) {
+            result.add(UUID.fromString(id));
+        }
+        return result;
+    }
+
+    @Override
+    public String currentRevisionsSql(int paramSize) {
+        var params = IntStream.range(0, paramSize)
+                .mapToObj(i -> "?")
+                .collect(Collectors.joining(","));
+        return """
+                SELECT stream_id, MAX(revision) AS max_revision
+                FROM %s.events
+                WHERE stream_id IN (%s)
+                GROUP BY stream_id;
+                """.formatted(
+                eventStoreName(),
+                params
+        );
     }
 }

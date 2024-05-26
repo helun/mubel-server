@@ -45,9 +45,11 @@ public class ScheduledEventsHandler {
                 try {
                     scheduledEventsQueue.receive(request)
                             .buffer(Duration.ofSeconds(1))
-                            .subscribe(this::handleEvents);
+                            .subscribe(this::handleEvents, err -> LOG.error("Error while handling scheduled events", err));
                 } catch (Throwable err) {
                     LOG.error("Error while handling scheduled events", err);
+                    shouldRun = false;
+                    break;
                 }
             }
         });
@@ -63,10 +65,24 @@ public class ScheduledEventsHandler {
             events.add(parseEventDataInput(msg));
             messageIds.add(msg.messageId());
         }
+        var streamIds = new ArrayList<String>(events.size());
+        for (var event : events) {
+            streamIds.add(event.getStreamId());
+        }
+        var revisions = eventStore.getCurrentRevisions(streamIds);
+        for (int i = 0; i < events.size(); i++) {
+            var event = events.get(i);
+            var revision = revisions.getOrDefault(event.getStreamId(), -1);
+            var modified = event.toBuilder()
+                    .setRevision(revision + 1)
+                    .build();
+            events.set(i, modified);
+        }
         appendOperationBuilder.clear()
                 .addAllEvent(events);
         eventStore.append(appendOperationBuilder.build());
         scheduledEventsQueue.delete(messageIds);
+        LOG.debug("appended {} scheduled events", events.size());
     }
 
     private static EventDataInput parseEventDataInput(Message msg) {
@@ -79,9 +95,6 @@ public class ScheduledEventsHandler {
 
     public void stop() {
         shouldRun = false;
-    }
-
-    private record MessageIdAndData(UUID messageId, EventDataInput data) {
     }
 
 }

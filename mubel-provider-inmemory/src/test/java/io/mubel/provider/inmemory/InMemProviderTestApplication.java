@@ -20,7 +20,7 @@ public class InMemProviderTestApplication {
     @Bean
     public QueueConfigurations queueConfigurations() {
         return new QueueConfigurations(List.of(
-                new QueueConfiguration("scheduledEvents", Duration.ofSeconds(30), Duration.ofMillis(500))
+                new QueueConfiguration("deadlines", Duration.ofSeconds(30), Duration.ofMillis(500))
         ));
     }
 

@@ -10,10 +10,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 
 import java.time.Clock;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
@@ -94,7 +91,7 @@ public class InMemEventStore implements EventStore, LiveEventsService {
             }
             if (!revisionLog.add(input.getStreamId() + input.getRevision())) {
                 throw new EventRevisionConflictException(
-                        ErrorMessages.eventVersionConflict(input.getStreamId(), input.getRevision())
+                        ErrorMessages.eventRevisionConflict(input.getStreamId(), input.getRevision())
                 );
             }
             final var ed = eb.setData(input.getData())
@@ -138,5 +135,19 @@ public class InMemEventStore implements EventStore, LiveEventsService {
                 .setEventCount(events.size())
                 .setStreamCount(events.stream().map(EventData::getStreamId).distinct().count())
                 .build();
+    }
+
+    @Override
+    public Map<String, Integer> getCurrentRevisions(List<String> streamIds) {
+        if (streamIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Integer> result = new HashMap<>(streamIds.size());
+        return events.stream()
+                .filter(event -> streamIds.contains(event.getStreamId()))
+                .collect(() -> result,
+                        (map, event) -> map.put(event.getStreamId(), event.getRevision()),
+                        Map::putAll
+                );
     }
 }

@@ -12,6 +12,8 @@ import reactor.core.publisher.Flux;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static io.mubel.server.spi.support.Constraints.requireNotBlank;
 
@@ -114,6 +116,23 @@ public class JdbcEventStore implements EventStore {
                         .setStreamCount(rs.getLong("stream_count"))
                         .build())
                 .one());
+    }
+
+    @Override
+    public Map<String, Integer> getCurrentRevisions(List<String> streamIds) {
+        if (streamIds.isEmpty()) {
+            return Map.of();
+        }
+        return jdbi.withHandle(h -> {
+                    var query = h.createQuery(statements.currentRevisionsSql(streamIds.size()));
+                    for (var i = 0; i < streamIds.size(); i++) {
+                        query.bind(i, statements.convertUUID(streamIds.get(i)));
+                    }
+                    return query.map((rs, ctx) -> Map.entry(rs.getString(1), rs.getInt(2)))
+                            .stream()
+                            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                }
+        );
     }
 
     public long maxSequenceNo() {

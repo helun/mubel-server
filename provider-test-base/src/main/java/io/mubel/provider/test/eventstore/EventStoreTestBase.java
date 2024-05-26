@@ -6,8 +6,10 @@ import io.mubel.server.spi.eventstore.EventStore;
 import io.mubel.server.spi.exceptions.EventRevisionConflictException;
 import org.junit.jupiter.api.*;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static io.mubel.provider.test.Fixtures.uuid;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -233,6 +235,32 @@ public abstract class EventStoreTestBase {
             var summary = eventStore.summary();
             assertThat(summary.getEventCount()).isZero();
             assertThat(summary.getStreamCount()).isZero();
+        }
+
+    }
+
+    @Nested
+    class GetCurrentRevisions {
+
+        @Test
+        void returns_no_revision_when_stream_does_not_exist() {
+            String streamId = uuid();
+            assertThat(eventStore.getCurrentRevisions(List.of(streamId)))
+                    .as("non existing stream should not be present in the result")
+                    .isEmpty();
+
+        }
+
+        @Test
+        void returns_current_revision_of_stream() {
+            var count1 = 10;
+            var streamId1 = appendEvents(count1);
+            var count2 = 5;
+            var streamId2 = appendEvents(count2);
+            assertThat(eventStore.getCurrentRevisions(List.of(streamId1, streamId2)))
+                    .as("streams should have revision equal to last appended event")
+                    .hasEntrySatisfying(streamId1, rev -> assertThat(rev).isEqualTo(count1 - 1))
+                    .hasEntrySatisfying(streamId2, rev -> assertThat(rev).isEqualTo(count2 - 1));
         }
 
     }

@@ -13,9 +13,9 @@ public class PgErrorMapper implements ErrorMapper {
         var root = Throwables.getRootCause(e);
         if (root instanceof PSQLException sqle) {
             if (PgErrorCode.UNIQUE_VIOLATION.equals(sqle.getSQLState())) {
-                if (PgEventStoreStatements.isVersionConflictError(sqle.getMessage())) {
+                if (PgEventStoreStatements.isRevisionConflictError(sqle.getMessage())) {
                     return new EventRevisionConflictException(
-                            PgErrorMessageParser.parseVersionConflictError(sqle.getMessage())
+                            PgErrorMessageParser.parseRevisionConflictError(sqle.getMessage())
                     );
                 }
             }

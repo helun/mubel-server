@@ -43,7 +43,7 @@ public class InMemMessageQueueService implements MessageQueueService {
 
     private void addMessageToQueue(String queueName, String type, byte[] payload, long delayMillis) {
         var queue = resolveQueue(queueName);
-        LOG.debug("Adding message to queue {}", queueName);
+        LOG.debug("adding message to queue {}", queueName);
         queue.put(new DelayedMessage(new Message(idGenerator.generate(), queueName, type, payload), delayMillis));
     }
 
@@ -58,16 +58,16 @@ public class InMemMessageQueueService implements MessageQueueService {
                     var queue = resolveQueue(request.queueName());
                     var visibilityTimeout = this.config.getQueue(request.queueName(), DEFAULT_DEADLINE_QUEUE_CONFIG_NAME).visibilityTimeout().toMillis();
                     try {
-                        LOG.debug("Polling queue {}", request.queueName());
+                        LOG.debug("polling queue {}", request.queueName());
                         int receivedCount = 0;
                         while (timeBudget.hasTimeRemaining()
                                 && receivedCount < request.maxMessages()
                                 && !sink.isCancelled()
                         ) {
-                            LOG.debug("Polling queue {}, time remaining: {}", request.queueName(), timeBudget.remainingTimeMs());
+                            LOG.debug("polling queue {}, time remaining: {}", request.queueName(), timeBudget.remainingTimeMs());
                             var delayedMessage = queue.poll(timeBudget.remainingTimeMs(), TimeUnit.MILLISECONDS);
                             if (delayedMessage != null) {
-                                LOG.debug("Received message {}", delayedMessage.message().messageId());
+                                LOG.debug("polled message {}", delayedMessage.message().messageId());
                                 sink.next(delayedMessage.message());
                                 scheduleInFlightTimeout(delayedMessage.message(), visibilityTimeout);
                                 receivedCount++;
@@ -79,7 +79,6 @@ public class InMemMessageQueueService implements MessageQueueService {
                         sink.complete();
                     }
                 }).doOnComplete(() -> LOG.debug("Receive request completed"))
-                .doOnNext(message -> LOG.debug("Received message {}", message.messageId()))
                 .doOnError(e -> LOG.error("Error during receive", e))
                 .doOnSubscribe(subscription -> LOG.debug("Receive request started"));
     }

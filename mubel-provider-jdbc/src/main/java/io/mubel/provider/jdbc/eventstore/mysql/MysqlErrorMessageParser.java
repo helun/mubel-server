@@ -12,6 +12,6 @@ public class MysqlErrorMessageParser {
         var delimIdx = key.indexOf("-");
         var streamId = key.substring(0, delimIdx);
         var version = key.substring(delimIdx + 1);
-        return ErrorMessages.eventVersionConflict(MysqlUtil.decodeUuid(streamId).toString(), Integer.parseInt(version));
+        return ErrorMessages.eventRevisionConflict(MysqlUtil.decodeUuid(streamId).toString(), Integer.parseInt(version));
     }
 }

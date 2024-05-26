@@ -1,5 +1,6 @@
 package io.mubel.provider.jdbc.eventstore;
 
+import java.util.Collection;
 import java.util.List;
 
 public abstract class EventStoreStatements {
@@ -71,4 +72,11 @@ public abstract class EventStoreStatements {
     public Object convertUUID(String value) {
         return value;
     }
+
+    public Iterable<?> convertUUIDs(Collection<String> input) {
+        return input;
+    }
+
+    public abstract String currentRevisionsSql(int paramSize);
+
 }

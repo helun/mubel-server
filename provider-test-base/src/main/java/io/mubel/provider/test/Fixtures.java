@@ -40,9 +40,9 @@ public class Fixtures {
     }
 
     public static List<EventDataInput> createEventInputs(int count) {
-        var id = uuid();
+        var streamId = uuid();
         return IntStream.range(0, count)
-                .mapToObj(version -> eventInput(id, version))
+                .mapToObj(version -> eventInput(streamId, version))
                 .toList();
     }
 

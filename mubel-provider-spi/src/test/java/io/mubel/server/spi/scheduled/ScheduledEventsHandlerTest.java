@@ -13,7 +13,9 @@ import reactor.core.publisher.Flux;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
@@ -33,9 +35,16 @@ class ScheduledEventsHandlerTest {
     @BeforeEach
     void setup() {
         handler = new ScheduledEventsHandler("esid", eventStore, messageQueueService);
+        when(eventStore.getCurrentRevisions(any())).thenAnswer(invocation -> {
+            var ids = invocation.<List<String>>getArgument(0);
+            return ids.stream()
+                    .map(id -> Map.entry(id, 5))
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        });
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void base_case() {
         Flux<Message> subFlux = Flux.fromIterable(List.of(scheduledEventMessage()));
         Flux<Message> emptyFlux = Flux.<Message>empty().delaySubscription(Duration.ofMillis(500));

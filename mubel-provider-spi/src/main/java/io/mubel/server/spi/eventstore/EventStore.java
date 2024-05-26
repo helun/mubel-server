@@ -8,6 +8,7 @@ import io.mubel.api.grpc.v1.server.EventStoreSummary;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
+import java.util.Map;
 
 public interface EventStore {
 
@@ -16,6 +17,8 @@ public interface EventStore {
     GetEventsResponse get(GetEventsRequest request);
 
     Flux<EventData> getStream(GetEventsRequest validated);
+
+    Map<String, Integer> getCurrentRevisions(List<String> streamIds);
 
     void truncate();
 

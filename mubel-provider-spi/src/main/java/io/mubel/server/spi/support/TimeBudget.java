@@ -21,9 +21,9 @@ public class TimeBudget {
     public boolean hasTimeRemaining() {
         timeRemaining = deadline - System.currentTimeMillis();
         if (timeRemaining > 0) {
-            LOG.trace("Time remaining: {}ms", timeRemaining);
+            LOG.trace("time remaining: {}ms", timeRemaining);
         } else {
-            LOG.trace("Time budget exceeded by {}ms", -timeRemaining);
+            LOG.trace("time budget exceeded by {}ms", -timeRemaining);
         }
         return timeRemaining > 0;
     }

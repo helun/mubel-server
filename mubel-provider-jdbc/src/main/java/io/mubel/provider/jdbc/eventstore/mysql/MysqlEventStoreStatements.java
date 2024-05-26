@@ -4,6 +4,8 @@ import io.mubel.provider.jdbc.eventstore.EventStoreStatements;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class MysqlEventStoreStatements extends EventStoreStatements {
 
@@ -18,12 +20,12 @@ public class MysqlEventStoreStatements extends EventStoreStatements {
                     CREATE TABLE %1$s_events(
                       id BINARY(16) NOT NULL PRIMARY KEY,
                       stream_id BINARY(16) NOT NULL,
-                      version INTEGER UNSIGNED NOT NULL,
+                      revision INTEGER UNSIGNED NOT NULL,
                       type VARCHAR(255) NOT NULL,
                       created_at BIGINT NOT NULL,
                       data MEDIUMBLOB,
                       meta_data MEDIUMBLOB,
-                      CONSTRAINT %1$s_sid_ver UNIQUE (stream_id, version)
+                      CONSTRAINT %1$s_sid_ver UNIQUE (stream_id, revision)
                     );
                     """,
             """     
@@ -40,7 +42,7 @@ public class MysqlEventStoreStatements extends EventStoreStatements {
             INSERT INTO %s_events(
               id,
               stream_id,
-              version,
+              revision,
               type,
               created_at,
               data,
@@ -52,7 +54,7 @@ public class MysqlEventStoreStatements extends EventStoreStatements {
             SELECT
               BIN_TO_UUID(id,1),
               BIN_TO_UUID(stream_id,1),
-              e.version,
+              e.revision,
               e.type,
               e.created_at,
               e.data,
@@ -63,17 +65,17 @@ public class MysqlEventStoreStatements extends EventStoreStatements {
             ,0 AS seq_id
             FROM %1$s_events e
             WHERE stream_id = UUID_TO_BIN(?,1)
-            AND version >= ?
-            ORDER BY version
+            AND revision >= ?
+            ORDER BY revision
             LIMIT ?
             """;
 
-    private static final String GET_MAX_VERSION_SQL_TPL = SELECT_EVENTS_TPL + """
+    private static final String GET_MAX_REVISION_SQL_TPL = SELECT_EVENTS_TPL + """
             ,0 AS seq_id
             FROM %1$s_events e
             WHERE stream_id = UUID_TO_BIN(?,1)
-            AND version BETWEEN ? AND ?
-            ORDER BY version
+            AND revision BETWEEN ? AND ?
+            ORDER BY revision
             LIMIT ?
             """;
 
@@ -114,7 +116,7 @@ public class MysqlEventStoreStatements extends EventStoreStatements {
                 APPEND_SQL_TPL.formatted(eventStoreName),
                 LOG_REQUEST_SQL_TPL.formatted(eventStoreName),
                 GET_SQL_TPL.formatted(eventStoreName),
-                GET_MAX_VERSION_SQL_TPL.formatted(eventStoreName),
+                GET_MAX_REVISION_SQL_TPL.formatted(eventStoreName),
                 PAGED_REPLAY_SQL_TPL.formatted(eventStoreName),
                 DDL_TPL.stream().map(s -> s.formatted(eventStoreName)).toList(),
                 DROP_SQL.stream().map(s -> s.formatted(eventStoreName)).toList()
@@ -126,7 +128,7 @@ public class MysqlEventStoreStatements extends EventStoreStatements {
         return TRUNCATE_SQL_TPL.stream().map(s -> s.formatted(eventStoreName())).toList();
     }
 
-    public static boolean isVersionConflictError(String violatedConstraint) {
+    public static boolean isRevisionConflictError(String violatedConstraint) {
         return Objects.requireNonNull(violatedConstraint).contains("events_sid_ver");
     }
 
@@ -149,4 +151,18 @@ public class MysqlEventStoreStatements extends EventStoreStatements {
                 FROM %s_events
                 """.formatted(eventStoreName());
     }
+
+    @Override
+    public String currentRevisionsSql(int paramSize) {
+        var params = IntStream.range(0, paramSize)
+                .mapToObj(i -> "UUID_TO_BIN(?,1)")
+                .collect(Collectors.joining(","));
+        return """
+                SELECT BIN_TO_UUID(stream_id, 1), MAX(revision) AS max_revision
+                FROM %s_events
+                WHERE stream_id IN (%s)
+                GROUP BY stream_id;
+                """.formatted(eventStoreName(), params);
+    }
+
 }
