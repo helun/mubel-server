@@ -11,10 +11,12 @@ import io.mubel.server.spi.execute.AsyncExecuteRequestHandler;
 import io.mubel.server.spi.model.DropEventStoreCommand;
 import io.mubel.server.spi.model.ProvisionCommand;
 import io.mubel.server.spi.model.StorageBackendProperties;
+import io.mubel.server.spi.scheduled.ScheduledEventsHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -27,6 +29,7 @@ public class JdbcProvider implements Provider {
 
     private final Map<String, JdbcEventStoreContext> contexts = new ConcurrentHashMap<>();
     private final Map<String, AsyncExecuteRequestHandler> requestHandlers = new ConcurrentHashMap<>();
+    private final Map<String, ScheduledEventsHandler> scheduledEventHandlers = new ConcurrentHashMap<>();
     private final EventStoreFactory eventStoreFactory;
     private final JdbcDataSources jdbcDataSources;
     private final JdbcProviderProperties properties;
@@ -81,17 +84,8 @@ public class JdbcProvider implements Provider {
     public EventStoreContext openEventStore(String esid) {
         var jc = contexts.get(esid);
 
-        var executeRequestHandler = new AsyncExecuteRequestHandler(
-                esid,
-                jc.eventStore(),
-                jc.messageQueueService(),
-                64,
-                2000
-        );
-
-        requestHandlers.put(esid, executeRequestHandler);
-        executeRequestHandler.start();
-
+        var executeRequestHandler = initRequestHandler(esid, jc);
+        initScheduledEventsHandler(esid, jc);
         return new EventStoreContext(
                 esid,
                 executeRequestHandler,
@@ -102,13 +96,37 @@ public class JdbcProvider implements Provider {
         );
     }
 
+    private void initScheduledEventsHandler(String esid, JdbcEventStoreContext jc) {
+        var scheduledEventsHandler = new ScheduledEventsHandler(
+                esid,
+                jc.eventStore(),
+                jc.messageQueueService()
+        );
+        scheduledEventsHandler.start();
+        scheduledEventHandlers.put(esid, scheduledEventsHandler);
+    }
+
+    private AsyncExecuteRequestHandler initRequestHandler(String esid, JdbcEventStoreContext jc) {
+        var executeRequestHandler = new AsyncExecuteRequestHandler(
+                esid,
+                jc.eventStore(),
+                jc.messageQueueService(),
+                64,
+                2000
+        );
+
+        requestHandlers.put(esid, executeRequestHandler);
+        executeRequestHandler.start();
+        return executeRequestHandler;
+    }
+
     @Override
     public void closeEventStore(String esid) {
         LOG.info("closing event store: {}", esid);
         contexts.get(esid).close();
-        var rh = requestHandlers.remove(esid);
-        if (rh != null) {
-            rh.stop();
-        }
+        Optional.ofNullable(requestHandlers.remove(esid))
+                .ifPresent(AsyncExecuteRequestHandler::stop);
+        Optional.ofNullable(scheduledEventHandlers.remove(esid))
+                .ifPresent(ScheduledEventsHandler::stop);
     }
 }

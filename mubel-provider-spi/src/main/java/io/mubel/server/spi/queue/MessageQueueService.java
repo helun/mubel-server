@@ -14,4 +14,6 @@ public interface MessageQueueService {
     Flux<Message> receive(ReceiveRequest request);
 
     void delete(Collection<UUID> uuids);
+
+    void stop();
 }

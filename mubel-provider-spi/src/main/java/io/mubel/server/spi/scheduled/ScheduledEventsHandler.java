@@ -45,9 +45,9 @@ public class ScheduledEventsHandler {
                 try {
                     scheduledEventsQueue.receive(request)
                             .buffer(Duration.ofSeconds(1))
-                            .subscribe(this::handleEvents, err -> LOG.error("Error while handling scheduled events", err));
+                            .subscribe(this::handleEvents, err -> LOG.error("error while handling scheduled events", err));
                 } catch (Throwable err) {
-                    LOG.error("Error while handling scheduled events", err);
+                    LOG.error("error while handling scheduled events", err);
                     shouldRun = false;
                     break;
                 }

@@ -15,6 +15,7 @@ import io.mubel.server.spi.model.StorageBackendProperties;
 import io.mubel.server.spi.scheduled.ScheduledEventsHandler;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -106,13 +107,7 @@ public class InMemProvider implements Provider {
     @Override
     public void closeEventStore(String esid) {
         eventStores.close(esid);
-        var rh = requesthandlers.remove(esid);
-        if (rh != null) {
-            rh.stop();
-        }
-        var sh = scheduledEventHandlers.remove(esid);
-        if (sh != null) {
-            sh.stop();
-        }
+        Optional.ofNullable(requesthandlers.remove(esid)).ifPresent(AsyncExecuteRequestHandler::stop);
+        Optional.ofNullable(scheduledEventHandlers.remove(esid)).ifPresent(ScheduledEventsHandler::stop);
     }
 }

@@ -11,6 +11,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class InMemMessageQueueService implements MessageQueueService {
 
@@ -23,6 +24,7 @@ public class InMemMessageQueueService implements MessageQueueService {
     private final IdGenerator idGenerator;
     private final QueueConfigurations config;
     private final ScheduledExecutorService inflightExecutor = Executors.newScheduledThreadPool(0, Thread.ofVirtual().factory());
+    private final AtomicBoolean shouldRun = new AtomicBoolean(true);
 
     public InMemMessageQueueService(IdGenerator idGenerator, QueueConfigurations config) {
         this.idGenerator = idGenerator;
@@ -63,6 +65,7 @@ public class InMemMessageQueueService implements MessageQueueService {
                         while (timeBudget.hasTimeRemaining()
                                 && receivedCount < request.maxMessages()
                                 && !sink.isCancelled()
+                                && shouldRun.get()
                         ) {
                             LOG.debug("polling queue {}, time remaining: {}", request.queueName(), timeBudget.remainingTimeMs());
                             var delayedMessage = queue.poll(timeBudget.remainingTimeMs(), TimeUnit.MILLISECONDS);
@@ -115,6 +118,12 @@ public class InMemMessageQueueService implements MessageQueueService {
         queues.clear();
     }
 
+    @Override
+    public void stop() {
+        shouldRun.set(false);
+        inflightExecutor.shutdownNow();
+    }
+
     private static class DelayedMessage implements Delayed {
         private final Message message;
 
@@ -134,6 +143,7 @@ public class InMemMessageQueueService implements MessageQueueService {
             long diff = startTime - System.currentTimeMillis();
             return unit.convert(diff, TimeUnit.MILLISECONDS);
         }
+
 
         @Override
         public int compareTo(Delayed o) {

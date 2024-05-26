@@ -12,5 +12,6 @@ public record JdbcEventStoreContext(
 ) {
     public void close() {
         liveEventsService.stop();
+        messageQueueService.stop();
     }
 }

@@ -6,12 +6,16 @@ import io.mubel.server.spi.support.TimeBudget;
 import org.jdbi.v3.core.Jdbi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Schedulers;
 
 import java.time.Duration;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class JdbcMessageQueueService implements MessageQueueService {
 
@@ -26,6 +30,8 @@ public class JdbcMessageQueueService implements MessageQueueService {
     private final Duration visibilityTimeout;
     private final DeleteStrategy deleteStrategy;
     private final int delayOffsetMs;
+    private final AtomicBoolean shouldRun = new AtomicBoolean(true);
+    private Disposable messageTimeoutEnforcer;
 
     public static JdbcMessageQueueService.Builder builder() {
         return new JdbcMessageQueueService.Builder();
@@ -43,24 +49,11 @@ public class JdbcMessageQueueService implements MessageQueueService {
     }
 
     public void start() {
-        Executors.newVirtualThreadPerTaskExecutor()
-                .execute(() -> {
-                    try {
-                        final var sleepTime = Math.max(visibilityTimeout.toMillis() / 4, MINIMUM_SLEEP_TIME);
-                        while (shouldRun()) {
-                            enforceVisibilityTimeout();
-                            Thread.sleep(sleepTime);
-                        }
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    } catch (Exception e) {
-                        LOG.error("Error enforcing visibility timeout", e);
-                    }
-                });
-    }
-
-    private boolean shouldRun() {
-        return !Thread.currentThread().isInterrupted();
+        final var sleepTime = Math.max(visibilityTimeout.toMillis() / 4, MINIMUM_SLEEP_TIME);
+        this.messageTimeoutEnforcer = Flux.interval(Duration.ofMillis(sleepTime))
+                .subscribeOn(Schedulers.fromExecutorService(Executors.newVirtualThreadPerTaskExecutor()))
+                .doOnError(e -> LOG.error("Error enforcing visibility timeout", e))
+                .subscribe(i -> enforceVisibilityTimeout());
     }
 
     private void enforceVisibilityTimeout() {
@@ -123,7 +116,8 @@ public class JdbcMessageQueueService implements MessageQueueService {
                         request.queueName(),
                         request.maxMessages(),
                         visibilityTimeout,
-                        sink
+                        sink,
+                        shouldRun
                 );
                 while (timeBudget.hasTimeRemaining()
                         && pollContext.shouldContinue()
@@ -144,6 +138,12 @@ public class JdbcMessageQueueService implements MessageQueueService {
     @Override
     public void delete(Collection<UUID> uuids) {
         deleteStrategy.delete(jdbi, uuids);
+    }
+
+    @Override
+    public void stop() {
+        shouldRun.set(false);
+        Optional.ofNullable(messageTimeoutEnforcer).ifPresent(Disposable::dispose);
     }
 
     public static class Builder {
