@@ -3,6 +3,7 @@ package io.mubel.provider.jdbc.eventstore;
 import io.mubel.api.grpc.v1.events.*;
 import io.mubel.api.grpc.v1.server.EventStoreSummary;
 import io.mubel.server.spi.eventstore.EventStore;
+import io.mubel.server.spi.eventstore.Revisions;
 import org.jdbi.v3.core.Handle;
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.core.result.ResultIterable;
@@ -13,7 +14,6 @@ import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static io.mubel.server.spi.support.Constraints.requireNotBlank;
 
@@ -119,9 +119,9 @@ public class JdbcEventStore implements EventStore {
     }
 
     @Override
-    public Map<String, Integer> getCurrentRevisions(List<String> streamIds) {
+    public Revisions getRevisions(List<String> streamIds) {
         if (streamIds.isEmpty()) {
-            return Map.of();
+            return Revisions.empty();
         }
         return jdbi.withHandle(h -> {
                     var query = h.createQuery(statements.currentRevisionsSql(streamIds.size()));
@@ -130,7 +130,9 @@ public class JdbcEventStore implements EventStore {
                     }
                     return query.map((rs, ctx) -> Map.entry(rs.getString(1), rs.getInt(2)))
                             .stream()
-                            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                            .reduce(new Revisions(streamIds.size()),
+                                    (r, e) -> r.add(e.getKey(), e.getValue()),
+                                    (r1, r2) -> r1);
                 }
         );
     }
@@ -148,10 +150,9 @@ public class JdbcEventStore implements EventStore {
                 final var selector = request.getSelector().getStream();
                 final var nnStreamId = requireNotBlank(selector.getStreamId(), "streamId may not be null");
                 final int sizeLimit = statements.parseSizeLimit(request.getSize());
-                jdbi.useHandle(h -> {
-                    setupByStreamQuery(h, selector, nnStreamId, sizeLimit)
-                            .useStream(s -> s.forEach(sink::next));
-                });
+                jdbi.useHandle(h ->
+                        setupByStreamQuery(h, selector, nnStreamId, sizeLimit).useStream(s -> s.forEach(sink::next))
+                );
                 sink.complete();
             } catch (Throwable e) {
                 sink.error(e);
@@ -204,9 +205,9 @@ public class JdbcEventStore implements EventStore {
         return Flux.create(sink -> {
             try {
                 final var selector = request.getSelector().getAll();
-                jdbi.useHandle(h -> {
-                    setupGetAllQuery(request, h, selector).useStream(s -> s.forEach(sink::next));
-                });
+                jdbi.useHandle(h ->
+                        setupGetAllQuery(request, h, selector).useStream(s -> s.forEach(sink::next))
+                );
                 sink.complete();
             } catch (Throwable e) {
                 sink.error(e);

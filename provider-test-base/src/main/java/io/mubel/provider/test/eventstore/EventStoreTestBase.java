@@ -240,14 +240,14 @@ public abstract class EventStoreTestBase {
     }
 
     @Nested
-    class GetCurrentRevisions {
+    class Revisions {
 
         @Test
         void returns_no_revision_when_stream_does_not_exist() {
             String streamId = uuid();
-            assertThat(eventStore.getCurrentRevisions(List.of(streamId)))
+            assertThat(eventStore.getRevisions(List.of(streamId)))
                     .as("non existing stream should not be present in the result")
-                    .isEmpty();
+                    .isNotNull();
 
         }
 
@@ -257,10 +257,12 @@ public abstract class EventStoreTestBase {
             var streamId1 = appendEvents(count1);
             var count2 = 5;
             var streamId2 = appendEvents(count2);
-            assertThat(eventStore.getCurrentRevisions(List.of(streamId1, streamId2)))
+            assertThat(eventStore.getRevisions(List.of(streamId1, streamId2)))
                     .as("streams should have revision equal to last appended event")
-                    .hasEntrySatisfying(streamId1, rev -> assertThat(rev).isEqualTo(count1 - 1))
-                    .hasEntrySatisfying(streamId2, rev -> assertThat(rev).isEqualTo(count2 - 1));
+                    .satisfies(revisions -> {
+                        assertThat(revisions.nextRevision(streamId1)).isEqualTo(count1);
+                        assertThat(revisions.nextRevision(streamId2)).isEqualTo(count2);
+                    });
         }
 
     }

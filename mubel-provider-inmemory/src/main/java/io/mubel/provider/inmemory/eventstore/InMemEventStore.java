@@ -5,12 +5,16 @@ import io.mubel.api.grpc.v1.server.EventStoreSummary;
 import io.mubel.server.spi.ErrorMessages;
 import io.mubel.server.spi.eventstore.EventStore;
 import io.mubel.server.spi.eventstore.LiveEventsService;
+import io.mubel.server.spi.eventstore.Revisions;
 import io.mubel.server.spi.exceptions.EventRevisionConflictException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 
 import java.time.Clock;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
@@ -138,16 +142,15 @@ public class InMemEventStore implements EventStore, LiveEventsService {
     }
 
     @Override
-    public Map<String, Integer> getCurrentRevisions(List<String> streamIds) {
+    public Revisions getRevisions(List<String> streamIds) {
         if (streamIds.isEmpty()) {
-            return Map.of();
+            return Revisions.empty();
         }
-        Map<String, Integer> result = new HashMap<>(streamIds.size());
         return events.stream()
                 .filter(event -> streamIds.contains(event.getStreamId()))
-                .collect(() -> result,
-                        (map, event) -> map.put(event.getStreamId(), event.getRevision()),
-                        Map::putAll
+                .reduce(new Revisions(streamIds.size()),
+                        (revisions, event) -> revisions.add(event.getStreamId(), event.getRevision()),
+                        (r1, r2) -> r1
                 );
     }
 }

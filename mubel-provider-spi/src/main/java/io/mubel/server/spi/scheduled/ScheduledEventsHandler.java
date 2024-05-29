@@ -69,12 +69,11 @@ public class ScheduledEventsHandler {
         for (var event : events) {
             streamIds.add(event.getStreamId());
         }
-        var revisions = eventStore.getCurrentRevisions(streamIds);
+        var revisions = eventStore.getRevisions(streamIds);
         for (int i = 0; i < events.size(); i++) {
             var event = events.get(i);
-            var revision = revisions.getOrDefault(event.getStreamId(), -1);
             var modified = event.toBuilder()
-                    .setRevision(revision + 1)
+                    .setRevision(revisions.nextRevision(event.getStreamId()))
                     .build();
             events.set(i, modified);
         }
@@ -96,5 +95,4 @@ public class ScheduledEventsHandler {
     public void stop() {
         shouldRun = false;
     }
-
 }
