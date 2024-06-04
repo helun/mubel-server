@@ -11,12 +11,10 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 
 import java.time.Clock;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -29,7 +27,7 @@ public class InMemEventStore implements EventStore, LiveEventsService {
     private final Clock clock = Clock.systemUTC();
 
     private FluxSink<EventData> liveSink;
-    private Flux<EventData> liveEvents;
+    private final AtomicReference<Flux<EventData>> liveEvents = new AtomicReference<>(null);
 
     @Override
     public GetEventsResponse get(GetEventsRequest request) {
@@ -123,14 +121,14 @@ public class InMemEventStore implements EventStore, LiveEventsService {
 
     @Override
     public Flux<EventData> liveEvents() {
-        if (liveSink == null) {
-            liveEvents = Flux.create(sink -> {
-                liveSink = sink;
-                sink.onDispose(() -> liveSink = null);
-            });
+        return liveEvents.updateAndGet(f -> Objects.requireNonNullElseGet(f, this::initLiveEvents));
+    }
 
-        }
-        return liveEvents.share();
+    private Flux<EventData> initLiveEvents() {
+        return Flux.<EventData>create(sink -> {
+            liveSink = sink;
+            sink.onDispose(() -> liveSink = null);
+        }).share();
     }
 
     @Override
