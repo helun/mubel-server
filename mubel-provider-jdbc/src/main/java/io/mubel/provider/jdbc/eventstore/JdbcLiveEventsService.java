@@ -10,14 +10,16 @@ import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.SignalType;
 import reactor.core.scheduler.Scheduler;
 
+import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 public abstract class JdbcLiveEventsService implements LiveEventsService {
 
     private static final Logger LOG = LoggerFactory.getLogger(JdbcLiveEventsService.class);
-    private volatile Flux<EventData> liveEvents;
+    private AtomicReference<Flux<EventData>> liveEvents = new AtomicReference<>(null);
 
     private final AtomicBoolean shouldRun = new AtomicBoolean(true);
     private final Scheduler scheduler;
@@ -36,24 +38,7 @@ public abstract class JdbcLiveEventsService implements LiveEventsService {
     }
 
     public Flux<EventData> liveEvents() {
-        if (liveEvents == null) {
-            synchronized (this) {
-                if (liveEvents == null) {
-                    liveEvents = initLiveEvents()
-                            .doOnSubscribe(sub -> {
-                                LOG.debug("subscribed to live events");
-                                liveEventsSubscription = sub;
-                            })
-                            .doOnCancel(() -> LOG.debug("unsubscribed from live events"))
-                            .doOnError(e -> LOG.error("error in live events service", e))
-                            .doOnComplete(() -> LOG.debug("live events service completed"))
-                            .doFinally(signal -> LOG.debug("live events service terminated"));
-                }
-            }
-        }
-        LOG.debug("returning live events flux");
-        return liveEvents.share()
-                .onBackpressureError();
+        return liveEvents.updateAndGet(f -> Objects.requireNonNullElseGet(f, this::initLiveEvents));
     }
 
     private Flux<EventData> initLiveEvents() {
@@ -69,7 +54,12 @@ public abstract class JdbcLiveEventsService implements LiveEventsService {
                         }
                     }
                 }).subscribeOn(scheduler)
-                .doFinally(this::stopped);
+                .doFinally(this::stopped)
+                .doOnCancel(() -> LOG.debug("unsubscribed from live events"))
+                .doOnError(e -> LOG.error("error in live events service", e))
+                .doOnComplete(() -> LOG.debug("live events service completed"))
+                .doFinally(signal -> LOG.debug("live events service terminated"))
+                .share();
     }
 
     private void stopped(SignalType signalType) {
