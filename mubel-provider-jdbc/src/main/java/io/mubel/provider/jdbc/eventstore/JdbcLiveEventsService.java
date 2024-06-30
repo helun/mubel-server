@@ -19,7 +19,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public abstract class JdbcLiveEventsService implements LiveEventsService {
 
     private static final Logger LOG = LoggerFactory.getLogger(JdbcLiveEventsService.class);
-    private AtomicReference<Flux<EventData>> liveEvents = new AtomicReference<>(null);
+    private final AtomicReference<Flux<EventData>> liveEvents = new AtomicReference<>(null);
 
     private final AtomicBoolean shouldRun = new AtomicBoolean(true);
     private final Scheduler scheduler;
