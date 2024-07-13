@@ -12,7 +12,11 @@ public class GrpcMubelEventsApi extends MubelEventsServiceGrpc.MubelEventsServic
     private final EventApiService eventApiService;
     private final SubscribeApiService subscribeApiService;
 
-    public GrpcMubelEventsApi(ExecuteApiService executeService, EventApiService eventApiService, SubscribeApiService subscribeApiService) {
+    public GrpcMubelEventsApi(
+            ExecuteApiService executeService,
+            EventApiService eventApiService,
+            SubscribeApiService subscribeApiService
+    ) {
         this.executeService = executeService;
         this.eventApiService = eventApiService;
         this.subscribeApiService = subscribeApiService;
@@ -53,4 +57,5 @@ public class GrpcMubelEventsApi extends MubelEventsServiceGrpc.MubelEventsServic
     public void subcribeToDeadlines(DeadlineSubscribeRequest request, StreamObserver<Deadline> responseObserver) {
         subscribeApiService.subcribeToDeadlines(request, responseObserver);
     }
+
 }

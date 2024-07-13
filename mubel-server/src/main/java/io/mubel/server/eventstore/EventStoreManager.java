@@ -128,4 +128,5 @@ public class EventStoreManager implements ApplicationListener<EventStoreEventEnv
     public EventStoreContext eventStoreContext(String esid) {
         return getEventStoreContext(esid);
     }
+
 }

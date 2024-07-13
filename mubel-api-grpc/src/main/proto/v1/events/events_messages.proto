@@ -153,18 +153,3 @@ message DeadlineSubscribeRequest {
   uint32 timeout = 2;
   optional uint32 maxEvents = 3;
 }
-
-message JoinConsumerGroupRequest {
-  string esid = 1;
-  string consumerGroup = 2;
-}
-
-message LeaveConsumerGroupRequest {
-  string token = 1;
-}
-
-message ConsumerGroupStatus {
-  string groupId = 1;
-  string token = 2;
-  bool leader = 3;
-}
