@@ -5,19 +5,26 @@ import io.mubel.server.spi.groups.Heartbeat;
 import io.mubel.server.spi.groups.JoinRequest;
 import io.mubel.server.spi.groups.LeaveRequest;
 
+import java.time.Clock;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.NavigableSet;
 import java.util.Optional;
 import java.util.TreeSet;
 
 public class GroupState {
 
+    private final Clock clock;
     private final int heartbeatIntervalSeconds = 10;
     private final NavigableSet<GroupEntry> candidates = new TreeSet<>();
     private GroupEntry leader;
 
+    public GroupState(Clock clock) {
+        this.clock = clock;
+    }
+
     public GroupStatus join(JoinRequest request) {
-        var groupEntry = new GroupEntry(request.token(), Instant.now());
+        var groupEntry = new GroupEntry(request.token(), clock.instant());
         var statusBuilder = GroupStatus.newBuilder()
                 .setGroupId(request.groupId())
                 .setToken(request.token())
@@ -60,16 +67,24 @@ public class GroupState {
 
     public static class GroupEntry implements Comparable<GroupEntry> {
 
+        private static final Comparator<GroupEntry> COMPARATOR = Comparator.comparing(GroupEntry::joined).reversed();
+
         private final String token;
+        private final Instant joined;
         private Instant lastActivity;
 
-        public GroupEntry(String token, Instant lastActivity) {
+        public GroupEntry(String token, Instant joined) {
             this.token = token;
+            this.joined = joined;
+        }
+
+        public Instant joined() {
+            return joined;
         }
 
         @Override
-        public int compareTo(GroupEntry o) {
-            return 0;
+        public int compareTo(GroupEntry other) {
+            return COMPARATOR.compare(this, other);
         }
     }
 

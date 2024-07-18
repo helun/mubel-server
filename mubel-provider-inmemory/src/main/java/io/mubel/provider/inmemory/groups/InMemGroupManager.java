@@ -9,6 +9,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 
+import java.time.Clock;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -18,10 +19,18 @@ public class InMemGroupManager implements GroupManager {
 
     private final ConcurrentMap<String, GroupState> groups = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, JoinSession> sessions = new ConcurrentHashMap<>();
+    private final Clock clock;
+
+    public InMemGroupManager(Clock clock) {
+        this.clock = clock;
+        requestSink.asFlux()
+                .subscribeOn(Schedulers.single())
+                .subscribe(this::handleRequest);
+    }
 
     @Override
     public Flux<GroupStatus> join(JoinRequest request) {
-        var session = new JoinSession(request);
+        var session = new JoinSession(request, clock.instant());
         requestSink.tryEmitNext(session);
         return session.response();
     }
@@ -31,17 +40,11 @@ public class InMemGroupManager implements GroupManager {
         requestSink.tryEmitNext(new LeaveMessage(leaveRequest));
     }
 
-    public void start() {
-        requestSink.asFlux()
-                .subscribeOn(Schedulers.single())
-                .subscribe(this::handleRequest);
-    }
-
     private void handleRequest(GroupMessage incoming) {
         switch (incoming) {
             case JoinSession session -> {
                 var joinRequest = session.joinRequest();
-                var groupState = groups.computeIfAbsent(joinRequest.groupId(), key -> new GroupState());
+                var groupState = groups.computeIfAbsent(joinRequest.groupId(), key -> new GroupState(clock));
                 var status = groupState.join(joinRequest);
                 session.next(status);
                 if (status.getLeader()) {

@@ -2,20 +2,20 @@ package io.mubel.provider.inmemory.groups;
 
 import io.mubel.provider.test.groups.GroupManagerTestBase;
 import io.mubel.server.spi.groups.GroupManager;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 
 class InMemGroupManagerTest extends GroupManagerTestBase {
 
-    private static final InMemGroupManager GROUP_MANAGER = new InMemGroupManager();
+    private InMemGroupManager groupManager;
 
-    @BeforeAll
-    static void start() {
-        GROUP_MANAGER.start();
+    @BeforeEach
+    void start() {
+        groupManager = new InMemGroupManager(clock());
     }
 
     @Override
     protected GroupManager groupManager() {
-        return GROUP_MANAGER;
+        return groupManager;
     }
 
 }

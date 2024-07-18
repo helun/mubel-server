@@ -39,6 +39,12 @@ public class TestSubscriber<E> {
         return this;
     }
 
+    public void assertNotComplete() {
+        if (done) {
+            throw new AssertionError("DataStream is done");
+        }
+    }
+
     public TestSubscriber<E> assertNoErrors() {
         if (error != null) {
             throw new AssertionError("DataStream has error", error);
@@ -78,4 +84,5 @@ public class TestSubscriber<E> {
         }
         return this;
     }
+
 }

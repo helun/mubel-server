@@ -1,5 +1,7 @@
 package io.mubel.provider.test.groups;
 
+import io.mubel.api.grpc.v1.groups.GroupStatus;
+import io.mubel.provider.test.AdjustableClock;
 import io.mubel.provider.test.TestSubscriber;
 import io.mubel.server.spi.groups.GroupManager;
 import io.mubel.server.spi.groups.JoinRequest;
@@ -9,6 +11,7 @@ import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import reactor.test.StepVerifier;
 
+import java.time.Clock;
 import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -17,6 +20,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 public abstract class GroupManagerTestBase {
 
     public static final String ESID_1 = "esid-1";
+
+    private AdjustableClock clock = new AdjustableClock();
 
     @Test
     void first_joined_becomes_leader() {
@@ -30,14 +35,9 @@ public abstract class GroupManagerTestBase {
     @Test
     void second_to_join_will_not_become_leader() {
         String groupId = "group-2";
-        var request1 = new JoinRequest(ESID_1, groupId, "token-1");
-        var request2 = new JoinRequest(ESID_1, groupId, "token-2");
-        StepVerifier.create(groupManager().join(request1))
-                .expectNextMatches(status -> {
-                    assertThat(status.getLeader()).as("first should become leader").isTrue();
-                    return true;
-                })
-                .verifyComplete();
+        var request1 = new JoinRequest(ESID_1, groupId, "token-2-1");
+        var request2 = new JoinRequest(ESID_1, groupId, "token-2-2");
+        joinAndVerifyLeadership(request1);
 
         StepVerifier.create(groupManager().join(request2))
                 .expectNextMatches(status -> {
@@ -51,18 +51,51 @@ public abstract class GroupManagerTestBase {
     @Test
     void new_leader_is_designated_when_current_leader_leaves() {
         String groupId = "group-3";
-        var request1 = new JoinRequest(ESID_1, groupId, "token-1");
-        var request2 = new JoinRequest(ESID_1, groupId, "token-2");
+        var request1 = new JoinRequest(ESID_1, groupId, "token-3-1");
+        var request2 = new JoinRequest(ESID_1, groupId, "token-3-2");
+        joinAndVerifyLeadership(request1);
+
+        var ts = new TestSubscriber<>(groupManager().join(request2));
+        groupManager().leave(new LeaveRequest(request1.groupId(), request1.token()));
+        assertBecomesLeader(ts);
+    }
+
+    @Test
+    void latest_to_join_should_become_leader() {
+        String groupId = "group-4";
+        var request1 = new JoinRequest(ESID_1, groupId, "token-4-1");
+        var request2 = new JoinRequest(ESID_1, groupId, "token-4-2");
+        var request3 = new JoinRequest(ESID_1, groupId, "token-4-3");
+        joinAndVerifyLeadership(request1);
+        clock.tick(Duration.ofSeconds(1));
+        var firstCandidate = new TestSubscriber<>(groupManager().join(request2));
+        clock.tick(Duration.ofSeconds(1));
+        var latestCandidate = new TestSubscriber<>(groupManager().join(request3));
+        groupManager().leave(new LeaveRequest(request1.groupId(), request1.token()));
+        firstCandidate.assertNotComplete();
+        assertBecomesLeader(latestCandidate);
+    }
+
+    private void joinAndVerifyLeadership(JoinRequest request1) {
         StepVerifier.create(groupManager().join(request1))
                 .expectNextMatches(status -> {
                     assertThat(status.getLeader()).as("first should become leader").isTrue();
                     return true;
                 })
                 .verifyComplete();
+    }
 
-        var ts = new TestSubscriber<>(groupManager().join(request2));
-        groupManager().leave(new LeaveRequest(request1.groupId(), request1.token()));
+    private static void assertBecomesLeader(TestSubscriber<GroupStatus> ts) {
         ts.awaitDone();
+        assertThat(ts.values())
+                .last()
+                .satisfies(status -> {
+                    assertThat(status.getLeader()).as("new leader should be designated").isTrue();
+                });
+    }
+
+    protected Clock clock() {
+        return clock;
     }
 
     protected abstract GroupManager groupManager();
