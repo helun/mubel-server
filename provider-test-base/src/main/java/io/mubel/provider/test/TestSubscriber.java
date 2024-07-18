@@ -2,14 +2,14 @@ package io.mubel.provider.test;
 
 import reactor.core.publisher.Flux;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.awaitility.Awaitility.await;
 
 public class TestSubscriber<E> {
 
-    private final List<E> values = new ArrayList<>();
+    private final List<E> values = new CopyOnWriteArrayList<>();
     private Throwable error;
 
     private volatile boolean done = false;

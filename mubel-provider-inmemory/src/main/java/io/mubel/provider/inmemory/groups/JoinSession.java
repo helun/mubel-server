@@ -26,4 +26,8 @@ public final class JoinSession implements GroupMessage {
     public Flux<GroupStatus> response() {
         return stateSink.asFlux();
     }
+
+    public void complete() {
+        stateSink.tryEmitComplete();
+    }
 }

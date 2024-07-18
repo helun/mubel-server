@@ -4,23 +4,31 @@ import io.mubel.api.grpc.v1.groups.GroupStatus;
 import io.mubel.server.spi.groups.GroupManager;
 import io.mubel.server.spi.groups.GroupRequest;
 import io.mubel.server.spi.groups.JoinRequest;
+import io.mubel.server.spi.groups.LeaveRequest;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class InMemGroupManager implements GroupManager {
 
     private final Sinks.Many<GroupMessage> requestSink = Sinks.many().unicast().onBackpressureBuffer();
 
-    private final ConcurrentHashMap<String, GroupState> groups = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, GroupState> groups = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, JoinSession> sessions = new ConcurrentHashMap<>();
 
     @Override
     public Flux<GroupStatus> join(JoinRequest request) {
         var session = new JoinSession(request);
         requestSink.tryEmitNext(session);
         return session.response();
+    }
+
+    @Override
+    public void leave(LeaveRequest leaveRequest) {
+        requestSink.tryEmitNext(new LeaveMessage(leaveRequest));
     }
 
     public void start() {
@@ -36,11 +44,24 @@ public class InMemGroupManager implements GroupManager {
                 var groupState = groups.computeIfAbsent(joinRequest.groupId(), key -> new GroupState());
                 var status = groupState.join(joinRequest);
                 session.next(status);
+                if (status.getLeader()) {
+                    session.complete();
+                } else {
+                    sessions.putIfAbsent(session.joinRequest().token(), session);
+                }
             }
             case LeaveMessage message -> {
+                sessions.remove(message.leaveRequest().token());
                 var groupState = getGroupState(message.leaveRequest());
                 if (groupState != null) {
-                    groupState.leave(message.leaveRequest());
+                    groupState.leave(message.leaveRequest()).ifPresent(newLeader -> {
+                        var session = sessions.get(newLeader.getToken());
+                        if (session != null) {
+                            session.next(newLeader);
+                            session.complete();
+                            sessions.remove(newLeader.getToken());
+                        }
+                    });
                 }
             }
             case HeartbeatMessage message -> {

@@ -7,32 +7,50 @@ import io.mubel.server.spi.groups.LeaveRequest;
 
 import java.time.Instant;
 import java.util.NavigableSet;
+import java.util.Optional;
 import java.util.TreeSet;
 
 public class GroupState {
 
+    private final int heartbeatIntervalSeconds = 10;
     private final NavigableSet<GroupEntry> candidates = new TreeSet<>();
     private GroupEntry leader;
 
     public GroupStatus join(JoinRequest request) {
         var groupEntry = new GroupEntry(request.token(), Instant.now());
+        var statusBuilder = GroupStatus.newBuilder()
+                .setGroupId(request.groupId())
+                .setToken(request.token())
+                .setHearbeatIntervalSeconds(heartbeatIntervalSeconds);
+
         if (leader == null) {
-            return GroupStatus.newBuilder()
+            leader = groupEntry;
+            return statusBuilder
                     .setLeader(true)
-                    .setGroupId(request.groupId())
-                    .setToken(request.token())
                     .build();
         }
         candidates.add(groupEntry);
-        return GroupStatus.newBuilder()
+        return statusBuilder
                 .setLeader(false)
-                .setGroupId(request.groupId())
-                .setToken(request.token())
                 .build();
     }
 
-    public void leave(LeaveRequest leaveRequest) {
-
+    public Optional<GroupStatus> leave(LeaveRequest leaveRequest) {
+        if (leader != null && leader.token.equals(leaveRequest.token())) {
+            leader = null;
+            if (!candidates.isEmpty()) {
+                leader = candidates.pollFirst();
+                return Optional.of(GroupStatus.newBuilder()
+                        .setGroupId(leaveRequest.groupId())
+                        .setToken(leader.token)
+                        .setLeader(true)
+                        .setHearbeatIntervalSeconds(heartbeatIntervalSeconds)
+                        .build());
+            }
+        } else {
+            candidates.removeIf(entry -> entry.token.equals(leaveRequest.token()));
+        }
+        return Optional.empty();
     }
 
     public void heartbeat(Heartbeat heartbeat) {
