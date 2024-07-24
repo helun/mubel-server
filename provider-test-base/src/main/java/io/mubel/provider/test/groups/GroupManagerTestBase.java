@@ -4,6 +4,7 @@ import io.mubel.api.grpc.v1.groups.GroupStatus;
 import io.mubel.provider.test.AdjustableClock;
 import io.mubel.provider.test.TestSubscriber;
 import io.mubel.server.spi.groups.GroupManager;
+import io.mubel.server.spi.groups.Heartbeat;
 import io.mubel.server.spi.groups.JoinRequest;
 import io.mubel.server.spi.groups.LeaveRequest;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -13,15 +14,17 @@ import reactor.test.StepVerifier;
 
 import java.time.Clock;
 import java.time.Duration;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 public abstract class GroupManagerTestBase {
 
     public static final String ESID_1 = "esid-1";
 
-    private AdjustableClock clock = new AdjustableClock();
+    private final AdjustableClock clock = new AdjustableClock();
 
     @Test
     void first_joined_becomes_leader() {
@@ -76,6 +79,35 @@ public abstract class GroupManagerTestBase {
         assertBecomesLeader(latestCandidate);
     }
 
+    @Test
+    void client_must_send_heartbeats() {
+        String groupId = "group-5";
+        var request1 = new JoinRequest(ESID_1, groupId, "token-5-1");
+        var status = groupManager().join(request1).blockFirst();
+        assertThat(status.getLeader()).as("should become leader").isTrue();
+        var heartbeat = new Heartbeat(request1.groupId(), request1.token());
+        var heartbeatInterval = Duration.ofSeconds(status.getHearbeatIntervalSeconds());
+        clock.tick(heartbeatInterval);
+        groupManager().heartbeat(heartbeat);
+        Optional<GroupStatus> leader = groupManager()
+                .leader(status.getGroupId());
+        assertThat(leader)
+                .map(GroupStatus::getToken)
+                .as("should remain leader")
+                .contains(status.getToken());
+        clock.tick(heartbeatInterval);
+        groupManager().checkClients();
+        clock.tick(heartbeatInterval);
+        groupManager().checkClients();
+        await().untilAsserted(() -> {
+            Optional<GroupStatus> noLeader = groupManager()
+                    .leader(status.getGroupId());
+            assertThat(noLeader)
+                    .as("leader should be removed when two heartbeats are missed")
+                    .isEmpty();
+        });
+    }
+
     private void joinAndVerifyLeadership(JoinRequest request1) {
         StepVerifier.create(groupManager().join(request1))
                 .expectNextMatches(status -> {
@@ -89,13 +121,15 @@ public abstract class GroupManagerTestBase {
         ts.awaitDone();
         assertThat(ts.values())
                 .last()
-                .satisfies(status -> {
-                    assertThat(status.getLeader()).as("new leader should be designated").isTrue();
-                });
+                .satisfies(status -> assertThat(status.getLeader()).as("new leader should be designated").isTrue());
     }
 
     protected Clock clock() {
         return clock;
+    }
+
+    protected Duration heartbeatInterval() {
+        return Duration.ofSeconds(1);
     }
 
     protected abstract GroupManager groupManager();

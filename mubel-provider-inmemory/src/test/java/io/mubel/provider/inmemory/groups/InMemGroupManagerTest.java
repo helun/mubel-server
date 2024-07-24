@@ -10,7 +10,7 @@ class InMemGroupManagerTest extends GroupManagerTestBase {
 
     @BeforeEach
     void start() {
-        groupManager = new InMemGroupManager(clock());
+        groupManager = new InMemGroupManager(clock(), heartbeatInterval());
     }
 
     @Override
