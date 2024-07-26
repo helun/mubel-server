@@ -80,7 +80,7 @@ public abstract class GroupManagerTestBase {
     }
 
     @Test
-    void client_must_send_heartbeats() {
+    void leader_must_send_heartbeats() {
         String groupId = "group-5";
         var request1 = new JoinRequest(ESID_1, groupId, "token-5-1");
         var status = groupManager().join(request1).blockFirst();
@@ -89,16 +89,44 @@ public abstract class GroupManagerTestBase {
         var heartbeatInterval = Duration.ofSeconds(status.getHearbeatIntervalSeconds());
         clock.tick(heartbeatInterval);
         groupManager().heartbeat(heartbeat);
-        Optional<GroupStatus> leader = groupManager()
-                .leader(status.getGroupId());
-        assertThat(leader)
-                .map(GroupStatus::getToken)
-                .as("should remain leader")
-                .contains(status.getToken());
+        assertLeadership(status);
         clock.tick(heartbeatInterval);
         groupManager().checkClients();
         clock.tick(heartbeatInterval);
         groupManager().checkClients();
+        assertNoLeader(status);
+    }
+
+    @Test
+    void candiates_must_send_heartbeats() {
+        String groupId = "group-6";
+        var leaderReq = new JoinRequest(ESID_1, groupId, "token-6-1");
+        var status = groupManager().join(leaderReq).blockFirst();
+        assertLeadership(status);
+        var candidateReq = new JoinRequest(ESID_1, groupId, "token-6-2");
+        var candidate = new TestSubscriber<>(groupManager().join(candidateReq));
+        var heartbeatInterval = Duration.ofSeconds(status.getHearbeatIntervalSeconds());
+
+        clock.tick(heartbeatInterval);
+        groupManager().heartbeat(new Heartbeat(candidateReq.groupId(), leaderReq.token()));
+        groupManager().heartbeat(new Heartbeat(candidateReq.groupId(), candidateReq.token()));
+        groupManager().checkClients();
+        candidate.assertNotComplete();
+
+        clock.tick(heartbeatInterval);
+        groupManager().heartbeat(new Heartbeat(candidateReq.groupId(), leaderReq.token()));
+        groupManager().checkClients();
+        assertLeadership(status);
+        candidate.assertNotComplete();
+
+        clock.tick(heartbeatInterval);
+        groupManager().heartbeat(new Heartbeat(candidateReq.groupId(), leaderReq.token()));
+        groupManager().checkClients();
+        assertLeadership(status);
+        await().untilAsserted(candidate::assertComplete);
+    }
+
+    private void assertNoLeader(GroupStatus status) {
         await().untilAsserted(() -> {
             Optional<GroupStatus> noLeader = groupManager()
                     .leader(status.getGroupId());
@@ -106,6 +134,15 @@ public abstract class GroupManagerTestBase {
                     .as("leader should be removed when two heartbeats are missed")
                     .isEmpty();
         });
+    }
+
+    private void assertLeadership(GroupStatus status) {
+        Optional<GroupStatus> leader = groupManager()
+                .leader(status.getGroupId());
+        assertThat(leader)
+                .map(GroupStatus::getToken)
+                .as("should remain leader")
+                .contains(status.getToken());
     }
 
     private void joinAndVerifyLeadership(JoinRequest request1) {
