@@ -1,5 +1,6 @@
 package io.mubel.server.configuration;
 
+import io.mubel.server.spi.groups.GroupsProperties;
 import io.mubel.server.spi.queue.QueueConfiguration;
 import io.mubel.server.spi.queue.QueueConfigurations;
 import io.mubel.server.spi.support.IdGenerator;
@@ -31,6 +32,11 @@ public class ApplicationConfiguration {
     @Bean
     public QueueConfigurations queueConfigurations(List<QueueConfiguration> queueConfigs) {
         return new QueueConfigurations(queueConfigs);
+    }
+
+    @Bean
+    public GroupsProperties groupsProperties(MubelConfigurationProperties properties) {
+        return properties.groups();
     }
 
 }
