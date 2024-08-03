@@ -7,9 +7,13 @@ import io.mubel.server.spi.groups.GroupManager;
 import io.mubel.server.spi.groups.JoinRequest;
 import io.mubel.server.spi.support.IdGenerator;
 import net.devh.boot.grpc.server.service.GrpcService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @GrpcService
 public class GrpcGroupsService extends GroupsServiceGrpc.GroupsServiceImplBase {
+
+    private static final Logger LOG = LoggerFactory.getLogger(GrpcGroupsService.class);
 
     private final GroupManager groupManager;
     private final IdGenerator idGenerator;
@@ -26,6 +30,7 @@ public class GrpcGroupsService extends GroupsServiceGrpc.GroupsServiceImplBase {
                 request.getGroupId(),
                 idGenerator.generateStringId()
         );
+        LOG.debug("Join request: {}", joinRequest);
         groupManager.join(joinRequest)
                 .subscribe(
                         responseObserver::onNext,
@@ -36,11 +41,20 @@ public class GrpcGroupsService extends GroupsServiceGrpc.GroupsServiceImplBase {
 
     @Override
     public void leaveConsumerGroup(LeaveGroupRequest request, StreamObserver<Empty> responseObserver) {
-        super.leaveConsumerGroup(request, responseObserver);
+        LOG.debug("Leave request: {}", request);
+        groupManager.leave(new io.mubel.server.spi.groups.LeaveRequest(request.getGroupId(), request.getToken()));
+        responseObserver.onNext(Empty.getDefaultInstance());
+        responseObserver.onCompleted();
     }
 
     @Override
     public void heartbeat(Heartbeat request, StreamObserver<Empty> responseObserver) {
-        super.heartbeat(request, responseObserver);
+        var hb = new io.mubel.server.spi.groups.Heartbeat(
+                request.getGroupId(),
+                request.getToken()
+        );
+        groupManager.heartbeat(hb);
+        responseObserver.onNext(Empty.getDefaultInstance());
+        responseObserver.onCompleted();
     }
 }

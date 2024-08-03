@@ -2,6 +2,8 @@ package io.mubel.provider.inmemory.groups;
 
 import io.mubel.api.grpc.v1.groups.GroupStatus;
 import io.mubel.server.spi.groups.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
@@ -13,6 +15,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 public class InMemGroupManager implements GroupManager {
+
+    private static final Logger LOG = LoggerFactory.getLogger(InMemGroupManager.class);
 
     private final Duration heartbeatInterval;
 
@@ -27,10 +31,14 @@ public class InMemGroupManager implements GroupManager {
         this.heartbeatInterval = heartbeatInterval;
         requestSink.asFlux()
                 .subscribeOn(Schedulers.single())
-                .subscribe(this::handleRequest);
+                .subscribe(this::handleRequest, this::handleError);
         Flux.interval(Duration.ofSeconds(1))
                 .map(tick -> new CheckGroupsMessage())
                 .subscribe(requestSink::tryEmitNext);
+    }
+
+    private void handleError(Throwable throwable) {
+        LOG.error("Error in group manager", throwable);
     }
 
     @Override
@@ -97,9 +105,11 @@ public class InMemGroupManager implements GroupManager {
     }
 
     private void handleJoin(JoinSession session) {
+        LOG.debug("handling join request: {}", session.joinRequest());
         var joinRequest = session.joinRequest();
         var groupState = groups.computeIfAbsent(joinRequest.groupId(), key -> createGroupState(joinRequest.groupId()));
         var status = groupState.join(joinRequest);
+        LOG.debug("join reply: {}", status);
         session.next(status);
         if (status.getLeader()) {
             session.complete();
@@ -113,11 +123,13 @@ public class InMemGroupManager implements GroupManager {
     }
 
     private void handleLeave(LeaveMessage message) {
+        LOG.debug("handling leave request: {}", message.leaveRequest());
         sessions.remove(message.leaveRequest().token());
         var groupState = getGroupState(message.leaveRequest());
         if (groupState != null) {
             groupState.leave(message.leaveRequest()).ifPresent(this::promote);
         }
+        LOG.debug("leave request handled: {}", message.leaveRequest());
     }
 
     private void handleHeartbeat(HeartbeatMessage message) {
@@ -125,9 +137,11 @@ public class InMemGroupManager implements GroupManager {
         if (groupState != null) {
             groupState.heartbeat(message.heartbeat());
         }
+        LOG.debug("heartbeat handled: {}", message.heartbeat());
     }
 
     private void handleLeaderQuery(LeaderQuery query) {
+        LOG.debug("handling leader query: {}", query.groupId());
         var groupState = groups.get(query.groupId());
         if (groupState != null) {
             groupState.leader().ifPresentOrElse(query::result, query::empty);
