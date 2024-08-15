@@ -63,14 +63,12 @@ public class GrpcExceptionAdvice {
     }
 
     public StatusRuntimeException handleException(Throwable e) {
-        if (e instanceof ValidationException ve) {
-            return handle(ve);
-        } else if (e instanceof ResourceNotFoundException rnfe) {
-            return handle(rnfe);
-        } else if (e instanceof BadRequestException bre) {
-            return handle(bre);
-        } else {
-            return handle(e);
-        }
+        return switch (e) {
+            case ValidationException ve -> handle(ve);
+            case ResourceNotFoundException rnfe -> handle(rnfe);
+            case PermissionDeniedException pde -> handle(pde);
+            case BadRequestException bre -> handle(bre);
+            case null, default -> handle(e);
+        };
     }
 }
