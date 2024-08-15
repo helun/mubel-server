@@ -10,6 +10,7 @@ import io.mubel.server.spi.eventstore.EventStore;
 import io.mubel.server.spi.eventstore.ExecuteRequestHandler;
 import io.mubel.server.spi.eventstore.LiveEventsService;
 import io.mubel.server.spi.eventstore.ReplayService;
+import io.mubel.server.spi.groups.LeaderQueries;
 import io.mubel.server.spi.queue.MessageQueueService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -22,6 +23,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class EventDataSubscriptionTest {
 
@@ -30,6 +35,8 @@ class EventDataSubscriptionTest {
     TestLiveEventsService liveEventsService = new TestLiveEventsService();
 
     ExecuteRequestHandler executeRequestHandler;
+
+    LeaderQueries leaderQueries = mock(LeaderQueries.class);
 
     EventStore eventStore;
 
@@ -44,7 +51,8 @@ class EventDataSubscriptionTest {
                 eventStore,
                 replayService,
                 liveEventsService,
-                messageQueueService
+                messageQueueService,
+                leaderQueries
         );
     }
 
@@ -111,6 +119,30 @@ class EventDataSubscriptionTest {
                 .expectNextSequence(firstReplay)
                 .expectNextSequence(actualLive)
                 .thenCancel()
+                .verify();
+    }
+
+    @Test
+    void subscription_is_rejected_if_supplied_group_token_is_not_leader() {
+        var request = SubscribeRequest
+                .newBuilder()
+                .setEsid("esid")
+                .setConsumerGroupToken("not-leader")
+                .setSelector(EventSelector.newBuilder()
+                        .setAll(AllSelector.newBuilder()
+                                .setFromSequenceNo(0)
+                        )
+                ).build();
+
+        when(leaderQueries.isLeader(anyString())).thenReturn(false);
+
+        Flux<EventData> subscription = EventDataSubscription.setupSubscription(
+                request,
+                context
+        );
+
+        StepVerifier.create(subscription)
+                .expectError(IllegalStateException.class)
                 .verify();
     }
 

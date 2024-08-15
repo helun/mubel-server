@@ -4,6 +4,7 @@ import io.mubel.server.spi.eventstore.EventStore;
 import io.mubel.server.spi.eventstore.ExecuteRequestHandler;
 import io.mubel.server.spi.eventstore.LiveEventsService;
 import io.mubel.server.spi.eventstore.ReplayService;
+import io.mubel.server.spi.groups.LeaderQueries;
 import io.mubel.server.spi.queue.MessageQueueService;
 
 public record EventStoreContext(
@@ -12,6 +13,7 @@ public record EventStoreContext(
         EventStore eventStore,
         ReplayService replayService,
         LiveEventsService liveEventsService,
-        MessageQueueService scheduledEventsQueue
+        MessageQueueService scheduledEventsQueue,
+        LeaderQueries leaderQueries
 ) {
 }

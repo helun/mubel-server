@@ -90,7 +90,8 @@ public class TestProvider implements Provider {
                 eventStore,
                 new InMemReplayService(eventStores),
                 eventStore,
-                messageQueueService
+                messageQueueService,
+                null
         );
     }
 

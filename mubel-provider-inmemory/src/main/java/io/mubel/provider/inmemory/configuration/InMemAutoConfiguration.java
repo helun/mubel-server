@@ -10,6 +10,7 @@ import io.mubel.provider.inmemory.systemdb.InMemJobStatusRepository;
 import io.mubel.server.spi.Provider;
 import io.mubel.server.spi.groups.GroupManager;
 import io.mubel.server.spi.groups.GroupsProperties;
+import io.mubel.server.spi.groups.LeaderQueries;
 import io.mubel.server.spi.queue.QueueConfigurations;
 import io.mubel.server.spi.support.IdGenerator;
 import io.mubel.server.spi.systemdb.EventStoreAliasRepository;
@@ -36,8 +37,12 @@ public class InMemAutoConfiguration {
     }
 
     @Bean
-    public Provider inmemProvider(InMemEventStores eventStores, InMemMessageQueueService inMemMessageQueueService) {
-        return new InMemProvider(eventStores, inMemMessageQueueService);
+    public Provider inmemProvider(
+            InMemEventStores eventStores,
+            InMemMessageQueueService inMemMessageQueueService,
+            LeaderQueries leaderQueries
+    ) {
+        return new InMemProvider(eventStores, inMemMessageQueueService, leaderQueries);
     }
 
     @Bean
@@ -75,7 +80,7 @@ public class InMemAutoConfiguration {
     @Bean
     @ConditionalOnBean(name = "inmemProvider")
     @ConditionalOnMissingBean(GroupManager.class)
-    public GroupManager inmemGroupManager(GroupsProperties properties) {
+    public InMemGroupManager inmemGroupManager(GroupsProperties properties) {
         return new InMemGroupManager(Clock.systemUTC(), properties.heartbeatInterval());
     }
 

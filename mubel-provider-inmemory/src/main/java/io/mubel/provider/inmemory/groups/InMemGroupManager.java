@@ -14,7 +14,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-public class InMemGroupManager implements GroupManager {
+public class InMemGroupManager implements GroupManager, LeaderQueries {
 
     private static final Logger LOG = LoggerFactory.getLogger(InMemGroupManager.class);
 
@@ -63,6 +63,14 @@ public class InMemGroupManager implements GroupManager {
         var query = new LeaderQuery(groupId);
         requestSink.tryEmitNext(query);
         return query.response();
+    }
+
+    @Override
+    public boolean isLeader(String token) {
+        return groups.values().stream()
+                .map(GroupState::leader)
+                .flatMap(Optional::stream)
+                .anyMatch(leader -> leader.getToken().equals(token));
     }
 
     @Override

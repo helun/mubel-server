@@ -8,6 +8,7 @@ import io.mubel.server.spi.EventStoreContext;
 import io.mubel.server.spi.Provider;
 import io.mubel.server.spi.exceptions.ResourceNotFoundException;
 import io.mubel.server.spi.execute.AsyncExecuteRequestHandler;
+import io.mubel.server.spi.groups.LeaderQueries;
 import io.mubel.server.spi.model.DropEventStoreCommand;
 import io.mubel.server.spi.model.ProvisionCommand;
 import io.mubel.server.spi.model.StorageBackendProperties;
@@ -33,11 +34,18 @@ public class JdbcProvider implements Provider {
     private final EventStoreFactory eventStoreFactory;
     private final JdbcDataSources jdbcDataSources;
     private final JdbcProviderProperties properties;
+    private final LeaderQueries leaderQueries;
 
-    public JdbcProvider(EventStoreFactory eventStoreFactory, JdbcDataSources jdbcDataSources, JdbcProviderProperties properties) {
+    public JdbcProvider(
+            EventStoreFactory eventStoreFactory,
+            JdbcDataSources jdbcDataSources,
+            JdbcProviderProperties properties,
+            LeaderQueries leaderQueries
+    ) {
         this.eventStoreFactory = eventStoreFactory;
         this.jdbcDataSources = jdbcDataSources;
         this.properties = properties;
+        this.leaderQueries = leaderQueries;
     }
 
     @Override
@@ -92,7 +100,8 @@ public class JdbcProvider implements Provider {
                 jc.eventStore(),
                 jc.replayService(),
                 jc.liveEventsService(),
-                jc.messageQueueService()
+                jc.messageQueueService(),
+                leaderQueries
         );
     }
 

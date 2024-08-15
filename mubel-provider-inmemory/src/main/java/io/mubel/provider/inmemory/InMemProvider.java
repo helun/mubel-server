@@ -9,6 +9,7 @@ import io.mubel.server.spi.Provider;
 import io.mubel.server.spi.eventstore.EventStore;
 import io.mubel.server.spi.exceptions.ResourceNotFoundException;
 import io.mubel.server.spi.execute.AsyncExecuteRequestHandler;
+import io.mubel.server.spi.groups.LeaderQueries;
 import io.mubel.server.spi.model.DropEventStoreCommand;
 import io.mubel.server.spi.model.ProvisionCommand;
 import io.mubel.server.spi.model.StorageBackendProperties;
@@ -28,14 +29,17 @@ public class InMemProvider implements Provider {
     private final InMemMessageQueueService messageQueueService;
     private final Map<String, AsyncExecuteRequestHandler> requesthandlers = new ConcurrentHashMap<>();
     private final Map<String, ScheduledEventsHandler> scheduledEventHandlers = new ConcurrentHashMap<>();
+    private final LeaderQueries leaderQueries;
 
     public InMemProvider(
             InMemEventStores eventStores,
-            InMemMessageQueueService messageQueueService
+            InMemMessageQueueService messageQueueService,
+            LeaderQueries leaderQueries
     ) {
         this.eventStores = eventStores;
         this.replayService = new InMemReplayService(eventStores);
         this.messageQueueService = messageQueueService;
+        this.leaderQueries = leaderQueries;
     }
 
     @Override
@@ -77,7 +81,8 @@ public class InMemProvider implements Provider {
                 eventStore,
                 replayService,
                 eventStore,
-                messageQueueService
+                messageQueueService,
+                leaderQueries
         );
     }
 

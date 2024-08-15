@@ -137,7 +137,7 @@ This is a long polling request, if no events are available the request will bloc
 message SubscribeRequest {
   string esid = 1;
   EventSelector selector = 2;
-  string consumerGroupToken = 3;
+  optional string consumerGroupToken = 3;
   // timeout in seconds, max value is 20 seconds
   uint32 timeout = 4;
   optional uint32 maxEvents = 5;
