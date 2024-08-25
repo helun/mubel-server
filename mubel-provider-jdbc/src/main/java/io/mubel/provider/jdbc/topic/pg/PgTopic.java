@@ -1,5 +1,6 @@
 package io.mubel.provider.jdbc.topic.pg;
 
+import io.mubel.provider.jdbc.topic.Topic;
 import org.postgresql.PGNotification;
 import org.postgresql.jdbc.PgConnection;
 import org.slf4j.Logger;
@@ -16,7 +17,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class PgTopic {
+public class PgTopic implements Topic {
 
     private static final Logger LOG = LoggerFactory.getLogger(PgTopic.class);
     private static final Set<String> CLOSED_SQL_STATES = Set.of("08003", "08006");

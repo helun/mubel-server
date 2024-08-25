@@ -21,8 +21,16 @@ CREATE TABLE job_status
     problem_detail TEXT
 );
 
-create table event_store_alias
+CREATE TABLE event_store_alias
 (
     esid  VARCHAR(255) PRIMARY KEY,
     alias VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE system_messages
+(
+    id         BIGINT PRIMARY KEY AUTO_INCREMENT,
+    topic      VARCHAR(255) NOT NULL,
+    message    TEXT,
+    published_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
