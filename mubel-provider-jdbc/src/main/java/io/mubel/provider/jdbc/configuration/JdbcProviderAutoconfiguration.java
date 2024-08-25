@@ -7,8 +7,12 @@ import io.mubel.provider.jdbc.eventstore.EventStoreFactory;
 import io.mubel.provider.jdbc.support.JdbcDataSources;
 import io.mubel.provider.jdbc.support.MubelDataSource;
 import io.mubel.provider.jdbc.systemdb.*;
+import io.mubel.provider.jdbc.systemdb.mysql.MysqlJobStatusStatements;
 import io.mubel.provider.jdbc.systemdb.pg.PgEventStoreDetailsStatements;
 import io.mubel.provider.jdbc.systemdb.pg.PgJobStatusStatements;
+import io.mubel.provider.jdbc.topic.PollingTopic;
+import io.mubel.provider.jdbc.topic.Topic;
+import io.mubel.provider.jdbc.topic.pg.PgTopic;
 import io.mubel.server.spi.Provider;
 import io.mubel.server.spi.groups.LeaderQueries;
 import io.mubel.server.spi.model.BackendType;
@@ -99,7 +103,24 @@ public class JdbcProviderAutoconfiguration {
                 .registerRowMapper(new JobStatusRowMapper());
         return switch (systemDbDataSource.backendType()) {
             case PG -> new JdbcJobStatusRepository(jdbi, new PgJobStatusStatements());
-            case MYSQL -> new JdbcJobStatusRepository(jdbi, new PgJobStatusStatements());
+            case MYSQL -> new JdbcJobStatusRepository(jdbi, new MysqlJobStatusStatements());
+            default ->
+                    throw new IllegalArgumentException("No job status repository implementation for backend type: " + systemDbDataSource.backendType());
+        };
+    }
+
+    @Bean
+    @ConditionalOnBean(name = "systemDbDataSource")
+    public Topic groupsTopic(
+            @Qualifier("systemDbDataSource") MubelDataSource systemDbDataSource
+    ) {
+        return switch (systemDbDataSource.backendType()) {
+            case PG -> new PgTopic("groups", systemDbDataSource.dataSource(), Schedulers.boundedElastic());
+            case MYSQL -> new PollingTopic("groups",
+                    500,
+                    Jdbi.create(systemDbDataSource.dataSource()),
+                    Schedulers.boundedElastic()
+            );
             default ->
                     throw new IllegalArgumentException("No job status repository implementation for backend type: " + systemDbDataSource.backendType());
         };
