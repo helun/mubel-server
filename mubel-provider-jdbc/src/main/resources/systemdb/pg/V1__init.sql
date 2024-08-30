@@ -26,3 +26,17 @@ create table event_store_alias
     esid  text primary key,
     alias text not null
 );
+
+create table group_leader
+(
+    group_id text not null primary key,
+    token    text not null
+);
+
+create table group_session
+(
+    token     text      not null primary key,
+    group_id  text      not null,
+    joined_at timestamp not null default now(),
+    last_seen timestamp not null default now()
+)

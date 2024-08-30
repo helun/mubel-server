@@ -42,7 +42,8 @@ public abstract class GroupManagerTestBase {
         var request2 = new JoinRequest(ESID_1, groupId, "token-2-2");
         joinAndVerifyLeadership(request1);
 
-        StepVerifier.create(groupManager().join(request2))
+        StepVerifier.create(groupManager()
+                        .join(request2))
                 .expectNextMatches(status -> {
                     assertThat(status.getLeader()).as("second should not become leader").isFalse();
                     return true;
@@ -74,9 +75,15 @@ public abstract class GroupManagerTestBase {
         var firstCandidate = new TestSubscriber<>(groupManager().join(request2));
         clock.tick(Duration.ofSeconds(1));
         var latestCandidate = new TestSubscriber<>(groupManager().join(request3));
+        sendHeartbeat(Heartbeat.from(request2));
+        sendHeartbeat(Heartbeat.from(request3));
         groupManager().leave(new LeaveRequest(request1.groupId(), request1.token()));
         firstCandidate.assertNotComplete();
         assertBecomesLeader(latestCandidate);
+    }
+
+    private void sendHeartbeat(Heartbeat heartbeat) {
+        groupManager().heartbeat(heartbeat);
     }
 
     @Test
@@ -85,10 +92,10 @@ public abstract class GroupManagerTestBase {
         var request1 = new JoinRequest(ESID_1, groupId, "token-5-1");
         var status = groupManager().join(request1).blockFirst();
         assertThat(status.getLeader()).as("should become leader").isTrue();
-        var heartbeat = new Heartbeat(request1.groupId(), request1.token());
+        var heartbeat = Heartbeat.from(request1);
         var heartbeatInterval = Duration.ofSeconds(status.getHearbeatIntervalSeconds());
         clock.tick(heartbeatInterval);
-        groupManager().heartbeat(heartbeat);
+        sendHeartbeat(heartbeat);
         assertLeadership(status);
         clock.tick(heartbeatInterval);
         groupManager().checkClients();
@@ -108,19 +115,19 @@ public abstract class GroupManagerTestBase {
         var heartbeatInterval = Duration.ofSeconds(status.getHearbeatIntervalSeconds());
 
         clock.tick(heartbeatInterval);
-        groupManager().heartbeat(new Heartbeat(candidateReq.groupId(), leaderReq.token()));
-        groupManager().heartbeat(new Heartbeat(candidateReq.groupId(), candidateReq.token()));
+        sendHeartbeat(new Heartbeat(candidateReq.groupId(), leaderReq.token()));
+        sendHeartbeat(new Heartbeat(candidateReq.groupId(), candidateReq.token()));
         groupManager().checkClients();
         candidate.assertNotComplete();
 
         clock.tick(heartbeatInterval);
-        groupManager().heartbeat(new Heartbeat(candidateReq.groupId(), leaderReq.token()));
+        sendHeartbeat(new Heartbeat(candidateReq.groupId(), leaderReq.token()));
         groupManager().checkClients();
         assertLeadership(status);
         candidate.assertNotComplete();
 
         clock.tick(heartbeatInterval);
-        groupManager().heartbeat(new Heartbeat(candidateReq.groupId(), leaderReq.token()));
+        sendHeartbeat(new Heartbeat(candidateReq.groupId(), leaderReq.token()));
         groupManager().checkClients();
         assertLeadership(status);
         await().untilAsserted(candidate::assertComplete);
