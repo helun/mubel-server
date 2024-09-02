@@ -38,8 +38,8 @@ public abstract class GroupManagerTestBase {
     @Test
     void second_to_join_will_not_become_leader() {
         String groupId = "group-2";
-        var request1 = new JoinRequest(ESID_1, groupId, "token-2-1");
-        var request2 = new JoinRequest(ESID_1, groupId, "token-2-2");
+        var request1 = new JoinRequest(ESID_1, groupId, "second-joined-token-2-1");
+        var request2 = new JoinRequest(ESID_1, groupId, "second-joined-token-2-2");
         joinAndVerifyLeadership(request1);
 
         StepVerifier.create(groupManager()
@@ -55,8 +55,8 @@ public abstract class GroupManagerTestBase {
     @Test
     void new_leader_is_designated_when_current_leader_leaves() {
         String groupId = "group-3";
-        var request1 = new JoinRequest(ESID_1, groupId, "token-3-1");
-        var request2 = new JoinRequest(ESID_1, groupId, "token-3-2");
+        var request1 = new JoinRequest(ESID_1, groupId, "new-ldr-token-3-1");
+        var request2 = new JoinRequest(ESID_1, groupId, "new-ldr-token-3-2");
         joinAndVerifyLeadership(request1);
 
         var ts = new TestSubscriber<>(groupManager().join(request2));
@@ -67,9 +67,9 @@ public abstract class GroupManagerTestBase {
     @Test
     void latest_to_join_should_become_leader() {
         String groupId = "group-4";
-        var request1 = new JoinRequest(ESID_1, groupId, "token-4-1");
-        var request2 = new JoinRequest(ESID_1, groupId, "token-4-2");
-        var request3 = new JoinRequest(ESID_1, groupId, "token-4-3");
+        var request1 = new JoinRequest(ESID_1, groupId, "ljl-token-4-1");
+        var request2 = new JoinRequest(ESID_1, groupId, "ljl-token-4-2");
+        var request3 = new JoinRequest(ESID_1, groupId, "ljl-token-4-3");
         joinAndVerifyLeadership(request1);
         clock.tick(Duration.ofSeconds(1));
         var firstCandidate = new TestSubscriber<>(groupManager().join(request2));
@@ -89,7 +89,7 @@ public abstract class GroupManagerTestBase {
     @Test
     void leader_must_send_heartbeats() {
         String groupId = "group-5";
-        var request1 = new JoinRequest(ESID_1, groupId, "token-5-1");
+        var request1 = new JoinRequest(ESID_1, groupId, "leader-hb-token-5-1");
         var status = groupManager().join(request1).blockFirst();
         assertThat(status.getLeader()).as("should become leader").isTrue();
         var heartbeat = Heartbeat.from(request1);
@@ -106,11 +106,11 @@ public abstract class GroupManagerTestBase {
 
     @Test
     void candiates_must_send_heartbeats() {
-        String groupId = "group-6";
-        var leaderReq = new JoinRequest(ESID_1, groupId, "token-6-1");
+        String groupId = "hb-group-6";
+        var leaderReq = new JoinRequest(ESID_1, groupId, "cand-hb-token-6-1");
         var status = groupManager().join(leaderReq).blockFirst();
         assertLeadership(status);
-        var candidateReq = new JoinRequest(ESID_1, groupId, "token-6-2");
+        var candidateReq = new JoinRequest(ESID_1, groupId, "cand-hb-token-6-2");
         var candidate = new TestSubscriber<>(groupManager().join(candidateReq));
         var heartbeatInterval = Duration.ofSeconds(status.getHearbeatIntervalSeconds());
 
@@ -155,7 +155,9 @@ public abstract class GroupManagerTestBase {
     private void joinAndVerifyLeadership(JoinRequest request1) {
         StepVerifier.create(groupManager().join(request1))
                 .expectNextMatches(status -> {
-                    assertThat(status.getLeader()).as("first should become leader").isTrue();
+                    assertThat(status.getLeader())
+                            .as("client with token %s should become leader", request1.token())
+                            .isTrue();
                     return true;
                 })
                 .verifyComplete();

@@ -1,5 +1,6 @@
 package io.mubel.provider.jdbc;
 
+import io.mubel.server.spi.groups.GroupsProperties;
 import io.mubel.server.spi.queue.QueueConfiguration;
 import io.mubel.server.spi.queue.QueueConfigurations;
 import io.mubel.server.spi.support.IdGenerator;
@@ -29,6 +30,11 @@ public class JdbcProviderTestApplication {
         return new QueueConfigurations(List.of(
                 new QueueConfiguration("deadlines", Duration.ofMinutes(1), Duration.ofMillis(500))
         ));
+    }
+
+    @Bean
+    public GroupsProperties groupsProperties() {
+        return new GroupsProperties(Duration.ofSeconds(2));
     }
 
 }

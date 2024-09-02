@@ -4,6 +4,9 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import io.mubel.provider.jdbc.JdbcProvider;
 import io.mubel.provider.jdbc.eventstore.EventStoreFactory;
+import io.mubel.provider.jdbc.groups.JdbcGroupManager;
+import io.mubel.provider.jdbc.groups.MySqlGroupManagerOperations;
+import io.mubel.provider.jdbc.groups.PgGroupManagerOperations;
 import io.mubel.provider.jdbc.support.JdbcDataSources;
 import io.mubel.provider.jdbc.support.MubelDataSource;
 import io.mubel.provider.jdbc.systemdb.*;
@@ -14,6 +17,7 @@ import io.mubel.provider.jdbc.topic.PollingTopic;
 import io.mubel.provider.jdbc.topic.Topic;
 import io.mubel.provider.jdbc.topic.pg.PgTopic;
 import io.mubel.server.spi.Provider;
+import io.mubel.server.spi.groups.GroupsProperties;
 import io.mubel.server.spi.groups.LeaderQueries;
 import io.mubel.server.spi.model.BackendType;
 import io.mubel.server.spi.queue.QueueConfigurations;
@@ -111,19 +115,40 @@ public class JdbcProviderAutoconfiguration {
 
     @Bean
     @ConditionalOnBean(name = "systemDbDataSource")
-    public Topic groupsTopic(
-            @Qualifier("systemDbDataSource") MubelDataSource systemDbDataSource
-    ) {
+    public Topic groupsTopic(@Qualifier("systemDbDataSource") MubelDataSource systemDbDataSource) {
         return switch (systemDbDataSource.backendType()) {
             case PG -> new PgTopic("groups", systemDbDataSource.dataSource(), Schedulers.boundedElastic());
             case MYSQL -> new PollingTopic("groups",
-                    500,
+                    250,
                     Jdbi.create(systemDbDataSource.dataSource()),
                     Schedulers.boundedElastic()
             );
             default ->
-                    throw new IllegalArgumentException("No job status repository implementation for backend type: " + systemDbDataSource.backendType());
+                    throw new IllegalArgumentException("No group manager implementation for backend type: " + systemDbDataSource.backendType());
         };
+    }
+
+    @Bean
+    @ConditionalOnBean(name = "systemDbDataSource")
+    public JdbcGroupManager jdbcGroupManager(
+            @Qualifier("systemDbDataSource") MubelDataSource systemDbDataSource,
+            @Qualifier("groupsTopic") Topic groupsTopic,
+            GroupsProperties properties
+    ) {
+        Jdbi jdbi = Jdbi.create(systemDbDataSource.dataSource());
+        var operations = switch (systemDbDataSource.backendType()) {
+            case PG -> new PgGroupManagerOperations();
+            case MYSQL -> new MySqlGroupManagerOperations();
+            default ->
+                    throw new IllegalArgumentException("No group manager implementation for backend type: " + systemDbDataSource.backendType());
+        };
+        return JdbcGroupManager.builder()
+                .jdbi(jdbi)
+                .operations(operations)
+                .scheduler(Schedulers.boundedElastic())
+                .heartbeatInterval(properties.heartbeatInterval())
+                .topic(groupsTopic)
+                .build();
     }
 
     @Bean

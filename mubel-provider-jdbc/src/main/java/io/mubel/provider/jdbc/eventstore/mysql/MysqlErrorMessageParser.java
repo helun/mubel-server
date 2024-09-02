@@ -12,6 +12,11 @@ public class MysqlErrorMessageParser {
         var delimIdx = key.indexOf("-");
         var streamId = key.substring(0, delimIdx);
         var version = key.substring(delimIdx + 1);
-        return ErrorMessages.eventRevisionConflict(MysqlUtil.decodeUuid(streamId).toString(), Integer.parseInt(version));
+        try {
+            return ErrorMessages.eventRevisionConflict(MysqlUtil.decodeUuid(streamId).toString(), Integer.parseInt(version));
+        } catch (Exception e) {
+            return "Failed to parse version conflict error: " + mysqlErrorDesc;
+        }
+
     }
 }

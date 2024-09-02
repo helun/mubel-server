@@ -5,7 +5,6 @@ import com.zaxxer.hikari.HikariDataSource;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
 
 import javax.sql.DataSource;
@@ -34,8 +33,7 @@ public final class Containers {
                 .withUsername(USER)
                 .withTmpFs(Map.of("/var/lib/postgresql/data", "rw"))
                 .withEnv("POSTGRES_DATA", "/var/lib/postgresql/data")
-                .waitingFor(Wait.defaultWaitStrategy())
-                .withLogConsumer(new Slf4jLogConsumer(org.slf4j.LoggerFactory.getLogger("postgres")));
+                .waitingFor(Wait.defaultWaitStrategy());
     }
 
     public static DataSource dataSource(JdbcDatabaseContainer container) {

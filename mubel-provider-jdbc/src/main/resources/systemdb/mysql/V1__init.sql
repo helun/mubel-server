@@ -34,3 +34,17 @@ CREATE TABLE system_messages
     message    TEXT,
     published_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE group_leader
+(
+    group_id VARCHAR(255) not null primary key,
+    token    VARCHAR(255) not null
+);
+
+CREATE TABLE group_session
+(
+    token     VARCHAR(255)      NOT NULL PRIMARY KEY,
+    group_id  VARCHAR(255)      NOT NULL,
+    joined_at DATETIME(3) NOT NULL,
+    last_seen DATETIME(3) NOT NULL
+)

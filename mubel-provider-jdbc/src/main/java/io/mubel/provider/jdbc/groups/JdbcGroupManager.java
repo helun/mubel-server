@@ -29,18 +29,19 @@ public class JdbcGroupManager implements GroupManager, LeaderQueries {
     private final ConcurrentMap<String, JoinSession> sessions = new ConcurrentHashMap<>();
     private final Duration heartbeatInterval;
     private final Scheduler scheduler;
+    private final GroupManagerOperations operations;
 
-    public JdbcGroupManager(
-            Jdbi jdbi,
-            Topic groupsTopic,
-            Duration heartbeatInterval,
-            Clock clock,
-            Scheduler scheduler) {
-        this.jdbi = jdbi;
-        this.groupsTopic = groupsTopic;
-        this.heartbeatInterval = heartbeatInterval;
-        this.clock = clock;
-        this.scheduler = scheduler;
+    public JdbcGroupManager(Builder b) {
+        this.jdbi = b.jdbi;
+        this.groupsTopic = b.groupsTopic;
+        this.heartbeatInterval = b.heartbeatInterval;
+        this.clock = b.clock;
+        this.scheduler = b.scheduler;
+        this.operations = b.operations;
+    }
+
+    public static JdbcGroupManager.Builder builder() {
+        return new Builder();
     }
 
     public void start() {
@@ -55,11 +56,13 @@ public class JdbcGroupManager implements GroupManager, LeaderQueries {
         var status = jdbi.inTransaction(h -> {
             insertSession(request, h);
             tryInsertLeader(request, h);
-            var token = getLeaderToken(request, h);
+            var leaderToken = operations.leader(request.groupId(), h)
+                    .map(GroupStatus::getToken)
+                    .orElseThrow();
             return GroupStatus.newBuilder()
                     .setGroupId(request.groupId())
                     .setToken(request.token())
-                    .setLeader(token.equals(request.token()))
+                    .setLeader(leaderToken.equals(request.token()))
                     .setHearbeatIntervalSeconds((int) heartbeatInterval.getSeconds())
                     .build();
         });
@@ -89,46 +92,29 @@ public class JdbcGroupManager implements GroupManager, LeaderQueries {
 
     @Override
     public void heartbeat(Heartbeat heartbeat) {
-        jdbi.useHandle(h -> {
-            h.createUpdate("UPDATE group_session SET last_seen = ? WHERE token = ?")
-                    .bind(0, clock.instant())
-                    .bind(1, heartbeat.token())
-                    .execute();
-        });
+        jdbi.useHandle(h -> operations.updateHeartbeat(heartbeat.token(), clock.instant(), h));
     }
 
     @Override
     public void checkClients() {
-        jdbi.useTransaction(h -> {
-            deleteExpiredSessions(h)
-                    .forEach(removedToken -> {
-                        completeJoinSession(removedToken);
-                        tryDeleteLeadership(removedToken, h)
-                                .ifPresent(leader -> appointNewLeader(leader, h));
-                    });
-        });
+        jdbi.useTransaction(h ->
+                deleteExpiredSessions(h)
+                        .forEach(removedToken -> {
+                            completeJoinSession(removedToken);
+                            tryDeleteLeadership(removedToken, h)
+                                    .ifPresent(leader -> appointNewLeader(leader, h));
+                        })
+        );
     }
 
     @Override
     public Optional<GroupStatus> leader(String groupId) {
-        return jdbi.withHandle(h -> h.createQuery("SELECT group_id, token FROM group_leader WHERE group_id = ?")
-                .bind(0, groupId)
-                .map(rowView -> GroupStatus.newBuilder()
-                        .setGroupId(rowView.getColumn("group_id", String.class))
-                        .setToken(rowView.getColumn("token", String.class))
-                        .setLeader(true)
-                        .build())
-                .findOne()
-        );
+        return jdbi.withHandle(h -> operations.leader(groupId, h));
     }
 
     @Override
     public boolean isLeader(String token) {
-        return jdbi.withHandle(h -> h.createQuery("SELECT COUNT(*) FROM group_leader WHERE token = ?")
-                .bind(0, token)
-                .mapTo(Integer.class)
-                .one() > 0
-        );
+        return jdbi.withHandle(h -> operations.isLeader(token, h));
     }
 
     private void handleGroupMessage(String message) {
@@ -159,32 +145,20 @@ public class JdbcGroupManager implements GroupManager, LeaderQueries {
                 .ifPresent(JoinSession::complete);
     }
 
-
-    private static String getLeaderToken(JoinRequest request, Handle h) {
-        return h.createQuery("SELECT token FROM group_leader WHERE group_id = ?")
-                .bind(0, request.groupId())
-                .mapTo(String.class)
-                .one();
+    private void tryInsertLeader(JoinRequest request, Handle h) {
+        operations.insertLeader(request, h);
     }
 
-    private static void tryInsertLeader(JoinRequest request, Handle h) {
-        h.createUpdate("INSERT INTO group_leader(group_id, token) VALUES (:group, :token) ON CONFLICT DO NOTHING")
-                .bind("group", request.groupId())
-                .bind("token", request.token())
-                .execute();
-    }
-
-    private static void insertSession(JoinRequest request, Handle h) {
-        h.createUpdate("INSERT INTO group_session (group_id, token, joined_at, last_seen) VALUES (:group, :token, :timestamp, :timestamp)")
-                .bind("group", request.groupId())
-                .bind("token", request.token())
-                .bind("timestamp", Instant.now())
-                .execute();
+    private void insertSession(JoinRequest request, Handle h) {
+        operations.insertSession(request, h);
     }
 
     private void completeJoinSession(String token) {
         Optional.ofNullable(sessions.remove(token))
-                .ifPresentOrElse(JoinSession::complete, () -> publishClientLeft(token));
+                .ifPresentOrElse(removed -> {
+                    removed.complete();
+                    LOG.debug("Join session completed: {}", token);
+                }, () -> publishClientLeft(token));
     }
 
     private void publishClientLeft(String token) {
@@ -193,19 +167,8 @@ public class JdbcGroupManager implements GroupManager, LeaderQueries {
 
     private void appointNewLeader(GroupLeader leader, Handle h) {
         LOG.debug("Appointing new leader for group: {}", leader.groupId);
-        h.createQuery("""
-                        INSERT INTO group_leader (group_id, token)
-                         SELECT group_id, token
-                         FROM group_session
-                         WHERE group_id = ?
-                           AND last_seen >= ?
-                         ORDER BY joined_at DESC
-                         LIMIT 1 RETURNING token
-                        """)
-                .bind(0, leader.groupId)
-                .bind(1, clock.instant().minus(heartbeatInterval))
-                .mapTo(String.class)
-                .findOne()
+        Instant maxLastSeen = clock.instant().minus(heartbeatInterval);
+        operations.appointNewLeader(leader.groupId, maxLastSeen, h)
                 .map(token -> {
                     LOG.debug("New leader token: {}", token);
                     leader.token = token;
@@ -221,28 +184,19 @@ public class JdbcGroupManager implements GroupManager, LeaderQueries {
         groupsTopic.publish("leader:" + newLeader.token);
     }
 
-    private static void deleteSession(LeaveRequest leaveRequest, Handle h) {
-        h.createUpdate("DELETE FROM group_session WHERE token = ?")
-                .bind(0, leaveRequest.token())
-                .execute();
+    private void deleteSession(LeaveRequest leaveRequest, Handle h) {
+        operations.deleteSession(leaveRequest, h);
     }
 
-    private static Optional<GroupLeader> tryDeleteLeadership(String token, Handle h) {
-        return h.createQuery("DELETE FROM group_leader WHERE token = :token RETURNING group_id")
-                .bind("token", token)
-                .map(rowView -> new GroupLeader(rowView.getColumn("group_id", String.class)))
-                .findOne();
+    private Optional<GroupLeader> tryDeleteLeadership(String token, Handle h) {
+        return operations.tryDeleteLeadership(token, h);
     }
-
 
     private List<String> deleteExpiredSessions(Handle h) {
-        return h.createQuery("DELETE FROM group_session WHERE last_seen < ? RETURNING token")
-                .bind(0, clock.instant().minus(heartbeatInterval))
-                .mapTo(String.class)
-                .list();
+        return operations.deleteExpiredSessions(h, clock.instant().minus(heartbeatInterval));
     }
 
-    private static class GroupLeader {
+    public static class GroupLeader {
         final String groupId;
         String token;
 
@@ -250,4 +204,48 @@ public class JdbcGroupManager implements GroupManager, LeaderQueries {
             this.groupId = groupId;
         }
     }
+
+    public static class Builder {
+        private Jdbi jdbi;
+        private Topic groupsTopic;
+        private Duration heartbeatInterval;
+        private Clock clock;
+        private Scheduler scheduler;
+        private GroupManagerOperations operations;
+
+        public Builder jdbi(Jdbi jdbi) {
+            this.jdbi = jdbi;
+            return this;
+        }
+
+        public Builder topic(Topic groupsTopic) {
+            this.groupsTopic = groupsTopic;
+            return this;
+        }
+
+        public Builder heartbeatInterval(Duration heartbeatInterval) {
+            this.heartbeatInterval = heartbeatInterval;
+            return this;
+        }
+
+        public Builder clock(Clock clock) {
+            this.clock = clock;
+            return this;
+        }
+
+        public Builder scheduler(Scheduler scheduler) {
+            this.scheduler = scheduler;
+            return this;
+        }
+
+        public Builder operations(GroupManagerOperations operations) {
+            this.operations = operations;
+            return this;
+        }
+
+        public JdbcGroupManager build() {
+            return new JdbcGroupManager(this);
+        }
+    }
+
 }

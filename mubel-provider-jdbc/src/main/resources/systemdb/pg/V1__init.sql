@@ -37,6 +37,6 @@ create table group_session
 (
     token     text      not null primary key,
     group_id  text      not null,
-    joined_at timestamp not null default now(),
-    last_seen timestamp not null default now()
+    joined_at timestamp not null,
+    last_seen timestamp not null
 )

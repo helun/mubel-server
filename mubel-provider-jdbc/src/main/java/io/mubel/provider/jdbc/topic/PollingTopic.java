@@ -8,6 +8,7 @@ import reactor.core.scheduler.Scheduler;
 import reactor.util.annotation.NonNull;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -52,9 +53,8 @@ public class PollingTopic implements io.mubel.provider.jdbc.topic.Topic {
         LOG.debug("initializing topic {}", topicName);
         shouldRun.set(true);
         initLastMessageId();
-        return Flux.interval(Duration.ofMillis(pollingIntervalMs))
+        return Flux.interval(Duration.ofMillis(pollingIntervalMs), scheduler)
                 .flatMapIterable(i -> findNewMessages())
-                .subscribeOn(scheduler)
                 .share()
                 .doOnSubscribe(sub -> consumerCount.incrementAndGet())
                 .doOnCancel(consumerCount::decrementAndGet)
@@ -63,6 +63,9 @@ public class PollingTopic implements io.mubel.provider.jdbc.topic.Topic {
 
     @NonNull
     private Iterable<String> findNewMessages() {
+        if (!shouldRun()) {
+            return List.of();
+        }
         return jdbi.withHandle(h -> h.createQuery("SELECT id, message FROM system_messages WHERE topic = ? AND id > ? ORDER BY id")
                 .bind(0, topicName)
                 .bind(1, lastId.get())

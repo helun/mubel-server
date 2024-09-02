@@ -10,11 +10,14 @@ import io.mubel.server.spi.queue.MessageQueueService;
 import io.mubel.server.spi.support.IdGenerator;
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.core.statement.Slf4JSqlLogger;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 import java.time.Duration;
 
@@ -27,9 +30,17 @@ public class MysqlMessageQueueServiceTest extends MessageQueueServiceTestBase {
     static JdbcMessageQueueService service;
     static Jdbi jdbi;
 
+    static Scheduler scheduler = Schedulers.boundedElastic();
+
     @AfterEach
     void tearDown() {
         jdbi.useTransaction(h -> h.createUpdate("DELETE FROM message_queue").execute());
+    }
+
+    @AfterAll
+    static void stop() {
+        scheduler.dispose();
+        service.stop();
     }
 
     @BeforeAll
@@ -50,6 +61,7 @@ public class MysqlMessageQueueServiceTest extends MessageQueueServiceTestBase {
                 .pollStrategy(new MysqlPollStrategy(statements))
                 .deleteStrategy(new BatchDeleteStrategy(statements))
                 .statements(statements)
+                .scheduler(scheduler)
                 .build();
         service.start();
     }

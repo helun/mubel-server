@@ -8,13 +8,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
-import reactor.core.scheduler.Schedulers;
+import reactor.core.scheduler.Scheduler;
 
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class JdbcMessageQueueService implements MessageQueueService {
@@ -31,6 +30,7 @@ public class JdbcMessageQueueService implements MessageQueueService {
     private final DeleteStrategy deleteStrategy;
     private final int delayOffsetMs;
     private final AtomicBoolean shouldRun = new AtomicBoolean(true);
+    private final Scheduler scheduler;
     private Disposable messageTimeoutEnforcer;
 
     public static JdbcMessageQueueService.Builder builder() {
@@ -46,12 +46,13 @@ public class JdbcMessageQueueService implements MessageQueueService {
         this.pollStrategy = b.pollStrategy;
         this.deleteStrategy = b.deleteStrategy;
         this.delayOffsetMs = b.delayOffsetMs;
+        this.scheduler = b.scheduler;
     }
 
     public void start() {
         final var sleepTime = Math.max(visibilityTimeout.toMillis() / 4, MINIMUM_SLEEP_TIME);
         this.messageTimeoutEnforcer = Flux.interval(Duration.ofMillis(sleepTime))
-                .subscribeOn(Schedulers.fromExecutorService(Executors.newVirtualThreadPerTaskExecutor()))
+                .subscribeOn(scheduler)
                 .doOnError(e -> LOG.error("Error enforcing visibility timeout", e))
                 .subscribe(i -> enforceVisibilityTimeout());
     }
@@ -155,6 +156,7 @@ public class JdbcMessageQueueService implements MessageQueueService {
         private Duration visibilityTimeout = Duration.ofSeconds(30);
         private DeleteStrategy deleteStrategy;
         private int delayOffsetMs = 0;
+        private Scheduler scheduler;
 
         public Builder jdbi(Jdbi jdbi) {
             this.jdbi = jdbi;
@@ -193,6 +195,11 @@ public class JdbcMessageQueueService implements MessageQueueService {
 
         public Builder delayOffsetMs(int delayOffsetMs) {
             this.delayOffsetMs = delayOffsetMs;
+            return this;
+        }
+
+        public Builder scheduler(Scheduler scheduler) {
+            this.scheduler = scheduler;
             return this;
         }
 
