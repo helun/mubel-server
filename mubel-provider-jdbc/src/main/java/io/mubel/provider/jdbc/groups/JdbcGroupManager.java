@@ -7,6 +7,8 @@ import org.jdbi.v3.core.Handle;
 import org.jdbi.v3.core.Jdbi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
 
@@ -18,7 +20,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-public class JdbcGroupManager implements GroupManager, LeaderQueries {
+public class JdbcGroupManager implements GroupManager, LeaderQueries, ApplicationRunner {
 
     private static final Logger LOG = LoggerFactory.getLogger(JdbcGroupManager.class);
 
@@ -47,6 +49,10 @@ public class JdbcGroupManager implements GroupManager, LeaderQueries {
     public void start() {
         groupsTopic.consumer()
                 .subscribeOn(scheduler)
+                .doOnSubscribe(sub -> {
+                    LOG.info("Subscribed to group messages");
+                    checkClients();
+                })
                 .subscribe(this::handleGroupMessage);
     }
 
@@ -59,6 +65,7 @@ public class JdbcGroupManager implements GroupManager, LeaderQueries {
             var leaderToken = operations.leader(request.groupId(), h)
                     .map(GroupStatus::getToken)
                     .orElseThrow();
+            LOG.debug("Leader token: {}", leaderToken);
             return GroupStatus.newBuilder()
                     .setGroupId(request.groupId())
                     .setToken(request.token())
@@ -97,9 +104,11 @@ public class JdbcGroupManager implements GroupManager, LeaderQueries {
 
     @Override
     public void checkClients() {
+        LOG.debug("Checking clients");
         jdbi.useTransaction(h ->
                 deleteExpiredSessions(h)
                         .forEach(removedToken -> {
+                            LOG.debug("Removing expired session: {}", removedToken);
                             completeJoinSession(removedToken);
                             tryDeleteLeadership(removedToken, h)
                                     .ifPresent(leader -> appointNewLeader(leader, h));
@@ -115,6 +124,11 @@ public class JdbcGroupManager implements GroupManager, LeaderQueries {
     @Override
     public boolean isLeader(String token) {
         return jdbi.withHandle(h -> operations.isLeader(token, h));
+    }
+
+    @Override
+    public void run(ApplicationArguments args) {
+        start();
     }
 
     private void handleGroupMessage(String message) {

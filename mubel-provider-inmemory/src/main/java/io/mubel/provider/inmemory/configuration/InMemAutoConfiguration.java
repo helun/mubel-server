@@ -79,6 +79,7 @@ public class InMemAutoConfiguration {
 
     @Bean
     @ConditionalOnBean(name = "inmemProvider")
+    @ConditionalOnProperty(prefix = "mubel.provider.inmemory", name = "system-db", havingValue = "true")
     @ConditionalOnMissingBean(GroupManager.class)
     public InMemGroupManager inmemGroupManager(GroupsProperties properties) {
         return new InMemGroupManager(Clock.systemUTC(), properties.heartbeatInterval());

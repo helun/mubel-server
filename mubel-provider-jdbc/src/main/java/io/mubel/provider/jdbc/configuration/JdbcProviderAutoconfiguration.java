@@ -37,6 +37,7 @@ import org.springframework.lang.Nullable;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
+import java.time.Clock;
 import java.util.concurrent.Executors;
 
 import static io.mubel.server.spi.support.ValueUtil.whenPositive;
@@ -148,6 +149,7 @@ public class JdbcProviderAutoconfiguration {
                 .scheduler(Schedulers.boundedElastic())
                 .heartbeatInterval(properties.heartbeatInterval())
                 .topic(groupsTopic)
+                .clock(Clock.systemUTC())
                 .build();
     }
 
