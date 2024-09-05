@@ -35,8 +35,8 @@ create table group_leader
 
 create table group_session
 (
-    token     text      not null primary key,
-    group_id  text      not null,
-    joined_at timestamp not null,
-    last_seen timestamp not null
+    token     text         not null primary key,
+    group_id  text         not null,
+    joined_at timestamp(6) not null,
+    last_seen timestamp(6) not null
 )

@@ -10,6 +10,7 @@ import io.mubel.server.spi.eventstore.EventStore;
 import io.mubel.server.spi.eventstore.ExecuteRequestHandler;
 import io.mubel.server.spi.eventstore.LiveEventsService;
 import io.mubel.server.spi.eventstore.ReplayService;
+import io.mubel.server.spi.exceptions.PermissionDeniedException;
 import io.mubel.server.spi.groups.LeaderQueries;
 import io.mubel.server.spi.queue.MessageQueueService;
 import org.junit.jupiter.api.BeforeEach;
@@ -142,7 +143,7 @@ class EventDataSubscriptionTest {
         );
 
         StepVerifier.create(subscription)
-                .expectError(IllegalStateException.class)
+                .expectError(PermissionDeniedException.class)
                 .verify();
     }
 

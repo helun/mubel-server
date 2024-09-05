@@ -45,6 +45,6 @@ CREATE TABLE group_session
 (
     token     VARCHAR(255)      NOT NULL PRIMARY KEY,
     group_id  VARCHAR(255)      NOT NULL,
-    joined_at DATETIME(3) NOT NULL,
-    last_seen DATETIME(3) NOT NULL
+    joined_at DATETIME(6) NOT NULL,
+    last_seen DATETIME(6) NOT NULL
 )
