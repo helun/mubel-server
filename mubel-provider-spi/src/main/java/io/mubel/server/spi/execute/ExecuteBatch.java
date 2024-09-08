@@ -1,11 +1,11 @@
 package io.mubel.server.spi.execute;
 
+import com.fasterxml.uuid.impl.UUIDUtil;
 import io.mubel.api.grpc.v1.events.AppendOperation;
 import io.mubel.api.grpc.v1.events.EventDataInput;
 import io.mubel.api.grpc.v1.events.ScheduleDeadlineOperation;
 import io.mubel.api.grpc.v1.events.ScheduleEventOperation;
 import io.mubel.server.spi.queue.BatchSendRequest;
-import io.mubel.server.spi.support.RequestQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,18 +14,15 @@ import java.util.List;
 import java.util.UUID;
 import java.util.function.LongUnaryOperator;
 
-class ExecuteRequestBatch {
+class ExecuteBatch {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ExecuteRequestBatch.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ExecuteBatch.class);
 
-    private static final int MAX_CANCEL_SIZE = 1000;
-    private static final int MAX_SCHEDULE_OP_SIZE = 1000;
-    private static final int MAX_APPEND_OP_SIZE = 1000;
     private static final int MAX_REQUEST_SIZE = 5;
     private static final int DEFAULT_APPENDS_SIZE = 256;
     private static final int DEFAULT_SCHEDULED_SIZE = 16;
 
-    private final List<RequestQueue.Entry<InternalExecuteRequest, Void>> requestBuffer = new ArrayList<>(MAX_REQUEST_SIZE);
+    private final List<InternalExecuteRequest> requestBuffer = new ArrayList<>(MAX_REQUEST_SIZE);
     private final BatchSendRequest.BatchEntry.Builder batchEntryBuilder = BatchSendRequest.BatchEntry.builder();
     private final LongUnaryOperator publishDelayCalculatorFn;
     private final BatchSendRequest.Builder deadlineBatch = BatchSendRequest.builder();
@@ -44,15 +41,17 @@ class ExecuteRequestBatch {
     private int totalScheduledSize = 0;
     private int totalCancelSize = 0;
 
-    public ExecuteRequestBatch(String esid, LongUnaryOperator publishDelayCalculatorFn) {
+    public ExecuteBatch(String esid, LongUnaryOperator publishDelayCalculatorFn) {
         deadlineBatch.queueName(esid + "-dl");
         scheduledEventsBatch.queueName(esid + "-sc");
         this.publishDelayCalculatorFn = publishDelayCalculatorFn;
     }
 
-    public void add(RequestQueue.Entry<InternalExecuteRequest, Void> entry) {
-        requestBuffer.add(entry);
-        analyze(entry.request());
+    public void addAll(Iterable<InternalExecuteRequest> entries) {
+        for (var entry : entries) {
+            requestBuffer.add(entry);
+            analyze(entry);
+        }
     }
 
     private void analyze(InternalExecuteRequest request) {
@@ -63,17 +62,8 @@ class ExecuteRequestBatch {
         totalCancelSize += request.cancelSize();
     }
 
-    boolean canAddMore() {
-        return requestBuffer.size() < MAX_REQUEST_SIZE
-                && totalCancelSize < MAX_CANCEL_SIZE
-                && totalAppendSize < MAX_APPEND_OP_SIZE
-                && totalDeadlineSize < MAX_SCHEDULE_OP_SIZE
-                && totalScheduledSize < MAX_SCHEDULE_OP_SIZE;
-    }
-
     public void consolidate() {
-        for (var rrb : requestBuffer) {
-            var request = rrb.request();
+        for (var request : requestBuffer) {
             consolidateAppend(request);
             consolidateDeadlines(request);
             consolidateScheduled(request);
@@ -97,7 +87,7 @@ class ExecuteRequestBatch {
             var cancels = getCancels();
             for (var op : request.cancelOperations()) {
                 for (var eventId : op.getEventIdList()) {
-                    cancels.add(UUID.fromString(eventId));
+                    cancels.add(UUIDUtil.uuid(eventId));
                 }
             }
         }
@@ -179,10 +169,12 @@ class ExecuteRequestBatch {
                 .build();
     }
 
-    public void reset() {
+    private void reset() {
         requestBuffer.clear();
+        appendOperation = null;
         appends.clear();
         deadlines.clear();
+        cancels.clear();
         scheduledEvents.clear();
         batchEntryBuilder.clear();
         deadlineBatch.clearEntries();
@@ -195,12 +187,14 @@ class ExecuteRequestBatch {
         totalCancelSize = 0;
     }
 
-    public void fail(Exception e) {
-        requestBuffer.forEach(r -> r.future().completeExceptionally(e));
+    public void fail(Throwable e) {
+        requestBuffer.forEach(r -> r.fail(e));
+        reset();
     }
 
     public void complete() {
-        requestBuffer.forEach(r -> r.future().complete(null));
+        requestBuffer.forEach(InternalExecuteRequest::complete);
+        reset();
     }
 
     public List<BatchSendRequest> sendRequests() {
@@ -208,14 +202,17 @@ class ExecuteRequestBatch {
     }
 
     public AppendOperation appendOperation() {
-        return appendOperation != null ? appendOperation :
-                AppendOperation.newBuilder()
-                        .addAllEvent(appends)
-                        .build();
+        return switch (totalAppendOps) {
+            case 0 -> null;
+            case 1 -> appendOperation;
+            default -> AppendOperation.newBuilder()
+                    .addAllEvent(appends)
+                    .build();
+        };
     }
 
     public List<UUID> cancelIds() {
-        return cancels;
+        return List.copyOf(cancels);
     }
 
     public boolean hasCancels() {

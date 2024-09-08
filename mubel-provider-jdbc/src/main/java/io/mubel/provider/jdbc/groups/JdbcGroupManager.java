@@ -50,7 +50,7 @@ public class JdbcGroupManager implements GroupManager, LeaderQueries, Applicatio
         groupsTopic.consumer()
                 .subscribeOn(scheduler)
                 .doOnSubscribe(sub -> {
-                    LOG.info("Subscribed to group messages");
+                    LOG.info("subscribed to group messages");
                     checkClients();
                 })
                 .subscribe(this::handleGroupMessage);
@@ -58,14 +58,14 @@ public class JdbcGroupManager implements GroupManager, LeaderQueries, Applicatio
 
     @Override
     public Flux<GroupStatus> join(JoinRequest request) {
-        LOG.debug("Received join request: {}", request);
+        LOG.debug("received join request: {}", request);
         var status = jdbi.inTransaction(h -> {
             insertSession(request, h);
             tryInsertLeader(request, h);
             var leaderToken = operations.leader(request.groupId(), h)
                     .map(GroupStatus::getToken)
                     .orElseThrow();
-            LOG.debug("Leader token: {}", leaderToken);
+            LOG.debug("leader token: {}", leaderToken);
             return GroupStatus.newBuilder()
                     .setGroupId(request.groupId())
                     .setToken(request.token())
@@ -85,7 +85,7 @@ public class JdbcGroupManager implements GroupManager, LeaderQueries, Applicatio
 
     @Override
     public void leave(LeaveRequest leaveRequest) {
-        LOG.info("Received leave request: {}", leaveRequest);
+        LOG.info("received leave request: {}", leaveRequest);
         completeJoinSession(leaveRequest.token());
         jdbi.useTransaction(h -> {
             deleteSession(leaveRequest, h);

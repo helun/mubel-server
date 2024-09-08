@@ -8,4 +8,6 @@ public interface ExecuteRequestHandler {
 
     CompletableFuture<Void> handle(ExecuteRequest request);
 
+    default void stop() {
+    }
 }

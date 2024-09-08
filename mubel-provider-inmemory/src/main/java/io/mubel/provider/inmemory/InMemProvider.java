@@ -7,8 +7,9 @@ import io.mubel.provider.inmemory.queue.InMemMessageQueueService;
 import io.mubel.server.spi.EventStoreContext;
 import io.mubel.server.spi.Provider;
 import io.mubel.server.spi.eventstore.EventStore;
+import io.mubel.server.spi.eventstore.ExecuteRequestHandler;
 import io.mubel.server.spi.exceptions.ResourceNotFoundException;
-import io.mubel.server.spi.execute.AsyncExecuteRequestHandler;
+import io.mubel.server.spi.execute.BatchingExecuteRequestHandler;
 import io.mubel.server.spi.groups.LeaderQueries;
 import io.mubel.server.spi.model.DropEventStoreCommand;
 import io.mubel.server.spi.model.ProvisionCommand;
@@ -27,7 +28,7 @@ public class InMemProvider implements Provider {
     private final InMemEventStores eventStores;
     private final InMemReplayService replayService;
     private final InMemMessageQueueService messageQueueService;
-    private final Map<String, AsyncExecuteRequestHandler> requesthandlers = new ConcurrentHashMap<>();
+    private final Map<String, ExecuteRequestHandler> requesthandlers = new ConcurrentHashMap<>();
     private final Map<String, ScheduledEventsHandler> scheduledEventHandlers = new ConcurrentHashMap<>();
     private final LeaderQueries leaderQueries;
 
@@ -96,15 +97,12 @@ public class InMemProvider implements Provider {
         scheduledEventHandlers.put(esid, scheduledEventsHandler);
     }
 
-    private AsyncExecuteRequestHandler initRequestHandler(String esid, EventStore eventStore) {
-        var executeRequestHandler = new AsyncExecuteRequestHandler(
+    private ExecuteRequestHandler initRequestHandler(String esid, EventStore eventStore) {
+        var executeRequestHandler = new BatchingExecuteRequestHandler(
                 esid,
                 eventStore,
-                messageQueueService,
-                100,
-                1000
+                messageQueueService
         );
-        executeRequestHandler.start();
         requesthandlers.put(esid, executeRequestHandler);
         return executeRequestHandler;
     }
@@ -112,7 +110,7 @@ public class InMemProvider implements Provider {
     @Override
     public void closeEventStore(String esid) {
         eventStores.close(esid);
-        Optional.ofNullable(requesthandlers.remove(esid)).ifPresent(AsyncExecuteRequestHandler::stop);
+        Optional.ofNullable(requesthandlers.remove(esid)).ifPresent(ExecuteRequestHandler::stop);
         Optional.ofNullable(scheduledEventHandlers.remove(esid)).ifPresent(ScheduledEventsHandler::stop);
     }
 }

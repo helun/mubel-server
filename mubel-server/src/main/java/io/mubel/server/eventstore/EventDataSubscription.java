@@ -72,6 +72,7 @@ public final class EventDataSubscription {
                 sink.error(new SequenceNoOutOfSyncException(request.getEsid(), expected, sequenceNo));
             } else {
                 sink.next(ed);
+                LOG.trace("Sequence no {} passed for {}", sequenceNo, request.getEsid());
                 lastSequenceNo.set(sequenceNo);
             }
         };

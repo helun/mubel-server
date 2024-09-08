@@ -3,9 +3,11 @@ package io.mubel.server.spi.execute;
 import io.mubel.api.grpc.v1.events.*;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public class InternalExecuteRequest {
 
+    private final CompletableFuture<Void> responseFuture = new CompletableFuture<>();
     private final ExecuteRequest request;
     private int appendSize = 0;
     private int appendOps = 0;
@@ -83,5 +85,17 @@ public class InternalExecuteRequest {
                 .filter(op -> op.getOperationCase() == Operation.OperationCase.CANCEL)
                 .map(Operation::getCancel)
                 .toList();
+    }
+
+    public void complete() {
+        responseFuture.complete(null);
+    }
+
+    public CompletableFuture<Void> response() {
+        return responseFuture;
+    }
+
+    public void fail(Throwable e) {
+        responseFuture.completeExceptionally(e);
     }
 }

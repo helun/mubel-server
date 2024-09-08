@@ -7,6 +7,8 @@ import io.mubel.server.spi.eventstore.EventStore;
 import io.mubel.server.spi.eventstore.LiveEventsService;
 import io.mubel.server.spi.eventstore.Revisions;
 import io.mubel.server.spi.exceptions.EventRevisionConflictException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 
@@ -19,6 +21,8 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class InMemEventStore implements EventStore, LiveEventsService {
+
+    private static final Logger LOG = LoggerFactory.getLogger(InMemEventStore.class);
 
     private final List<EventData> events = Collections.synchronizedList(new ArrayList<>(1000));
     private final Set<String> appendLog = new ConcurrentSkipListSet<>();
@@ -85,10 +89,12 @@ public class InMemEventStore implements EventStore, LiveEventsService {
 
     @Override
     public List<EventData> append(AppendOperation request) {
+        LOG.trace("appending {} events", request.getEventCount());
         final var eb = EventData.newBuilder();
         final var result = new ArrayList<EventData>(request.getEventCount());
         for (final var input : request.getEventList()) {
             if (!appendLog.add(input.getId())) {
+                LOG.trace("Event with id {} already exists", input.getId());
                 continue;
             }
             if (!revisionLog.add(input.getStreamId() + input.getRevision())) {
@@ -103,15 +109,18 @@ public class InMemEventStore implements EventStore, LiveEventsService {
                     .setType(input.getType())
                     .setRevision(input.getRevision())
                     .setSequenceNo(sequenceNo.incrementAndGet())
+                    .setMetaData(input.getMetaData())
                     .build();
             result.add(ed);
         }
         events.addAll(result);
+        LOG.trace("appended {} events, events size: {}", result.size(), events.size());
         publishLive(result);
         return result;
     }
 
     private void publishLive(ArrayList<EventData> result) {
+        LOG.trace("publishing {} events to live stream", result.size());
         if (liveSink != null) {
             for (var event : result) {
                 liveSink.next(event);

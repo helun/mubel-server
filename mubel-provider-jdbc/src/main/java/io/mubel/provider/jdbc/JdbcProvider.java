@@ -6,8 +6,9 @@ import io.mubel.provider.jdbc.eventstore.JdbcEventStoreContext;
 import io.mubel.provider.jdbc.support.JdbcDataSources;
 import io.mubel.server.spi.EventStoreContext;
 import io.mubel.server.spi.Provider;
+import io.mubel.server.spi.eventstore.ExecuteRequestHandler;
 import io.mubel.server.spi.exceptions.ResourceNotFoundException;
-import io.mubel.server.spi.execute.AsyncExecuteRequestHandler;
+import io.mubel.server.spi.execute.BatchingExecuteRequestHandler;
 import io.mubel.server.spi.groups.LeaderQueries;
 import io.mubel.server.spi.model.DropEventStoreCommand;
 import io.mubel.server.spi.model.ProvisionCommand;
@@ -29,7 +30,7 @@ public class JdbcProvider implements Provider {
     private final static Logger LOG = LoggerFactory.getLogger(JdbcProvider.class);
 
     private final Map<String, JdbcEventStoreContext> contexts = new ConcurrentHashMap<>();
-    private final Map<String, AsyncExecuteRequestHandler> requestHandlers = new ConcurrentHashMap<>();
+    private final Map<String, ExecuteRequestHandler> requestHandlers = new ConcurrentHashMap<>();
     private final Map<String, ScheduledEventsHandler> scheduledEventHandlers = new ConcurrentHashMap<>();
     private final EventStoreFactory eventStoreFactory;
     private final JdbcDataSources jdbcDataSources;
@@ -115,17 +116,13 @@ public class JdbcProvider implements Provider {
         scheduledEventHandlers.put(esid, scheduledEventsHandler);
     }
 
-    private AsyncExecuteRequestHandler initRequestHandler(String esid, JdbcEventStoreContext jc) {
-        var executeRequestHandler = new AsyncExecuteRequestHandler(
+    private ExecuteRequestHandler initRequestHandler(String esid, JdbcEventStoreContext jc) {
+        var executeRequestHandler = new BatchingExecuteRequestHandler(
                 esid,
                 jc.eventStore(),
-                jc.messageQueueService(),
-                64,
-                2000
+                jc.messageQueueService()
         );
-
         requestHandlers.put(esid, executeRequestHandler);
-        executeRequestHandler.start();
         return executeRequestHandler;
     }
 
@@ -134,7 +131,7 @@ public class JdbcProvider implements Provider {
         LOG.info("closing event store: {}", esid);
         contexts.get(esid).close();
         Optional.ofNullable(requestHandlers.remove(esid))
-                .ifPresent(AsyncExecuteRequestHandler::stop);
+                .ifPresent(ExecuteRequestHandler::stop);
         Optional.ofNullable(scheduledEventHandlers.remove(esid))
                 .ifPresent(ScheduledEventsHandler::stop);
     }

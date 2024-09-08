@@ -1,7 +1,12 @@
 package io.mubel.server.spi.execute;
 
-import io.mubel.api.grpc.v1.events.*;
-import io.mubel.server.spi.eventstore.EventStore;
+import io.mubel.api.grpc.v1.events.AppendOperation;
+import io.mubel.api.grpc.v1.events.Deadline;
+import io.mubel.api.grpc.v1.events.EventDataInput;
+import io.mubel.api.grpc.v1.events.ExecuteRequest;
+import io.mubel.server.spi.Fixtures;
+import io.mubel.server.spi.TestEventStore;
+import io.mubel.server.spi.eventstore.ExecuteRequestHandler;
 import io.mubel.server.spi.queue.BatchSendRequest;
 import io.mubel.server.spi.queue.MessageQueueService;
 import org.junit.jupiter.api.AfterEach;
@@ -16,26 +21,27 @@ import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 
+import static io.mubel.server.spi.execute.TestOperations.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
-class AsyncExecuteRequestHandlerTest {
+class BatchingExecuteRequestHandlerTest {
 
     public static final String ESID = "esid";
-    @Mock
-    EventStore eventStore;
+
+    TestEventStore eventStore = new TestEventStore();
 
     @Mock
     MessageQueueService messageQueueService;
 
-    AsyncExecuteRequestHandler handler;
+    ExecuteRequestHandler handler;
 
     @BeforeEach
     void setUp() {
-        handler = new AsyncExecuteRequestHandler(ESID, eventStore, messageQueueService, 10, 1000);
+        handler = new BatchingExecuteRequestHandler(ESID, eventStore, messageQueueService);
     }
 
     @AfterEach
@@ -44,10 +50,21 @@ class AsyncExecuteRequestHandlerTest {
     }
 
     @Test
-    void all_operations() {
-        handler.start();
-        var cancelId = UUID.randomUUID();
+    void singe_append_operation() {
+        var request = ExecuteRequest.newBuilder()
+                .setRequestId(ESID)
+                .addOperation(appendOperation())
+                .build();
 
+        assertThat(handler.handle(request))
+                .succeedsWithin(Duration.ofMillis(10));
+
+        assertThat(eventStore.firstAppendOperation()).isEqualTo(request.getOperation(0).getAppend());
+    }
+
+    @Test
+    void all_operations() {
+        var cancelId = UUID.randomUUID();
         var request = ExecuteRequest.newBuilder()
                 .setRequestId(ESID)
                 .addOperation(appendOperation())
@@ -58,22 +75,23 @@ class AsyncExecuteRequestHandlerTest {
 
         assertThat(handler.handle(request))
                 .succeedsWithin(Duration.ofMillis(100));
-        verify(eventStore).append(request.getOperation(0).getAppend());
-        verify(messageQueueService).delete(List.of(cancelId));
+
+        assertThat(eventStore.firstAppendOperation()).isEqualTo(request.getOperation(0).getAppend());
         verify(messageQueueService, times(2)).send(any(BatchSendRequest.class));
+        verify(messageQueueService).delete(List.of(cancelId));
     }
 
     @Test
     void queued_operations_are_joined_in_single_request() {
-        var eventId1 = UUID.randomUUID().toString();
-        var deadlineIdTargetId1 = UUID.randomUUID().toString();
+        var eventId1 = Fixtures.uuidString();
+        var deadlineIdTargetId1 = Fixtures.uuidString();
         var r1 = ExecuteRequest.newBuilder()
                 .setRequestId(ESID)
                 .addOperation(appendOperation(eventId1))
                 .addOperation(scheduleDeadlineOperation(deadlineIdTargetId1))
                 .build();
-        var eventId2 = UUID.randomUUID().toString();
-        var deadlineIdTargetId2 = UUID.randomUUID().toString();
+        var eventId2 = Fixtures.uuidString();
+        var deadlineIdTargetId2 = Fixtures.uuidString();
         var r2 = ExecuteRequest.newBuilder()
                 .setRequestId(ESID)
                 .addOperation(appendOperation(eventId2))
@@ -81,16 +99,11 @@ class AsyncExecuteRequestHandlerTest {
                 .build();
         var r1Future = handler.handle(r1);
         var r2Future = handler.handle(r2);
-        assertThat(r1Future).isNotCompleted();
-        assertThat(r2Future).isNotCompleted();
-        handler.start();
         assertThat(r1Future).succeedsWithin(Duration.ofMillis(100));
         assertThat(r2Future).succeedsWithin(Duration.ofMillis(100));
 
-        var appendCaptor = ArgumentCaptor.forClass(AppendOperation.class);
-        verify(eventStore).append(appendCaptor.capture());
-        assertThat(appendCaptor.getValue()
-                .getEventList())
+        AppendOperation aop = eventStore.lastAppendOperation();
+        assertThat(aop.getEventList())
                 .as("all events are appended in same operation")
                 .hasSize(2)
                 .map(EventDataInput::getId)
@@ -111,9 +124,8 @@ class AsyncExecuteRequestHandlerTest {
 
     @Test
     void multiple_scheduled_event_ops_in_same_request_are_joined_in_a_single_batch_request() {
-        handler.start();
-        var eventId1 = UUID.randomUUID().toString();
-        var eventId2 = UUID.randomUUID().toString();
+        var eventId1 = Fixtures.uuidString();
+        var eventId2 = Fixtures.uuidString();
         var r1 = ExecuteRequest.newBuilder()
                 .setRequestId(ESID)
                 .addOperation(scheduleEventOperation(eventId1))
@@ -137,9 +149,8 @@ class AsyncExecuteRequestHandlerTest {
 
     @Test
     void multiple_cancel_ops_are_joined_into_a_single_operation() throws Exception {
-        handler.start();
-        var cancelId1 = UUID.randomUUID();
-        var cancelId2 = UUID.randomUUID();
+        var cancelId1 = Fixtures.uuid();
+        var cancelId2 = Fixtures.uuid();
         var r1 = ExecuteRequest.newBuilder()
                 .setRequestId(ESID)
                 .addOperation(cancelScheduledOperation(cancelId1))
@@ -148,63 +159,6 @@ class AsyncExecuteRequestHandlerTest {
         handler.handle(r1).get();
 
         verify(messageQueueService).delete(List.of(cancelId1, cancelId2));
-    }
-
-    private static Operation.Builder appendOperation() {
-        return appendOperation(UUID.randomUUID().toString());
-    }
-
-    private static Operation.Builder appendOperation(String eventId) {
-        return Operation.newBuilder()
-                .setAppend(AppendOperation.newBuilder()
-                        .addEvent(EventDataInput.newBuilder()
-                                .setId(eventId)
-                                .setType("test-type")
-                                .setStreamId(UUID.randomUUID().toString())
-                        )
-                );
-    }
-
-    private static Operation.Builder cancelScheduledOperation(UUID cancelId) {
-        return Operation.newBuilder()
-                .setCancel(CancelScheduledOperation.newBuilder()
-                        .addEventId(cancelId.toString())
-                );
-    }
-
-    private static Operation.Builder scheduleDeadlineOperation() {
-        return scheduleDeadlineOperation(UUID.randomUUID().toString());
-    }
-
-    private static Operation.Builder scheduleDeadlineOperation(String targetId) {
-        return Operation.newBuilder()
-                .setScheduleDeadline(ScheduleDeadlineOperation.newBuilder()
-                        .setId(UUID.randomUUID().toString())
-                        .setDeadline(Deadline.newBuilder()
-                                .setType("test-dl")
-                                .setTargetEntity(EntityReference.newBuilder()
-                                        .setId(targetId)
-                                        .setType("test-entity")
-                                )
-                        )
-                        .setPublishTime(System.currentTimeMillis() + 1000)
-                );
-    }
-
-    private static Operation.Builder scheduleEventOperation() {
-        return scheduleEventOperation(UUID.randomUUID().toString());
-    }
-
-    private static Operation.Builder scheduleEventOperation(String eventId) {
-        return Operation.newBuilder()
-                .setScheduleEvent(ScheduleEventOperation.newBuilder()
-                        .setEvent(EventDataInput.newBuilder()
-                                .setId(eventId)
-                                .setType("test-type")
-                                .setStreamId(UUID.randomUUID().toString())
-                        )
-                        .setPublishTime(System.currentTimeMillis() + 1000)
-                );
     }
 
 }

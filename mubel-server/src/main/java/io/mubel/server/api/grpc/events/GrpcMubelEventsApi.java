@@ -4,9 +4,13 @@ import com.google.protobuf.Empty;
 import io.grpc.stub.StreamObserver;
 import io.mubel.api.grpc.v1.events.*;
 import net.devh.boot.grpc.server.service.GrpcService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @GrpcService
 public class GrpcMubelEventsApi extends MubelEventsServiceGrpc.MubelEventsServiceImplBase {
+
+    private static final Logger LOG = LoggerFactory.getLogger(GrpcMubelEventsApi.class);
 
     private final ExecuteApiService executeService;
     private final EventApiService eventApiService;
@@ -24,13 +28,18 @@ public class GrpcMubelEventsApi extends MubelEventsServiceGrpc.MubelEventsServic
 
     @Override
     public void execute(ExecuteRequest request, StreamObserver<Empty> responseObserver) {
+        LOG.debug("received execute request: {}, operation count: {}", request.getRequestId(), request.getOperationCount());
+        long start = System.currentTimeMillis();
         executeService.execute(request)
                 .handle((ignored, err) -> {
                     if (err != null) {
                         responseObserver.onError(err);
+                        LOG.error("failed to execute request: {}", request.getRequestId(), err);
                     } else {
                         responseObserver.onNext(Empty.getDefaultInstance());
                         responseObserver.onCompleted();
+                        long duration = System.currentTimeMillis() - start;
+                        LOG.debug("executed request: {} in {} ms", request.getRequestId(), duration);
                     }
                     return null;
                 });

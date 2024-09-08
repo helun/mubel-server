@@ -9,7 +9,7 @@ import io.mubel.server.spi.EventStoreContext;
 import io.mubel.server.spi.Provider;
 import io.mubel.server.spi.eventstore.EventStoreState;
 import io.mubel.server.spi.exceptions.ResourceNotFoundException;
-import io.mubel.server.spi.execute.AsyncExecuteRequestHandler;
+import io.mubel.server.spi.execute.BatchingExecuteRequestHandler;
 import io.mubel.server.spi.model.*;
 import io.mubel.server.spi.queue.QueueConfiguration;
 import io.mubel.server.spi.queue.QueueConfigurations;
@@ -77,12 +77,10 @@ public class TestProvider implements Provider {
                 new QueueConfiguration("deadlines", Duration.ofSeconds(1), Duration.ofSeconds(1))
         )));
 
-        var exh = new AsyncExecuteRequestHandler(
+        var exh = new BatchingExecuteRequestHandler(
                 esid,
                 eventStore,
-                messageQueueService,
-                100,
-                1000);
+                messageQueueService);
 
         return new EventStoreContext(
                 esid,
