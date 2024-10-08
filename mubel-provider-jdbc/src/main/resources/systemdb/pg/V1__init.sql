@@ -10,14 +10,14 @@ create table event_store_details
 create table job_status
 (
     job_id         text primary key,
-    state          text   not null,
-    description    text,
-    progress       smallint,
     updated_at     bigint not null,
     created_at     bigint not null,
+    progress       smallint,
+    problem_status smallint,
+    state          text   not null,
+    description    text,
     problem_type   text,
     problem_title  text,
-    problem_status smallint,
     problem_detail text
 );
 
@@ -35,8 +35,8 @@ create table group_leader
 
 create table group_session
 (
-    token     text         not null primary key,
-    group_id  text         not null,
     joined_at timestamp(6) not null,
-    last_seen timestamp(6) not null
+    last_seen timestamp(6) not null,
+    token     text         not null primary key,
+    group_id  text         not null
 )

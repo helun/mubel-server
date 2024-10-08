@@ -1,5 +1,6 @@
 package io.mubel.provider.jdbc.eventstore.pg;
 
+import com.fasterxml.uuid.impl.UUIDUtil;
 import io.mubel.provider.jdbc.eventstore.EventStoreStatements;
 
 import java.util.*;
@@ -10,36 +11,36 @@ public class PgEventStoreStatements extends EventStoreStatements {
 
     private static final String DDL_TPL = """
             CREATE SCHEMA %1$s;
-
+            
             CREATE TABLE %1$s.request_log (
                 id UUID PRIMARY KEY,
                 created_at timestamp NOT NULL DEFAULT now()
               );
-
+            
             CREATE TABLE %1$s.events (
               id UUID PRIMARY KEY,
               stream_id UUID NOT NULL,
+              created_at BIGINT NOT NULL,
               revision INTEGER NOT NULL,
               type TEXT NOT NULL,
-              created_at bigint NOT NULL,
               data BYTEA,
               meta_data BYTEA
             );
-
+            
             CREATE UNIQUE INDEX events_sid_ver ON %1$s.events(stream_id, revision);
-
+            
             CREATE TABLE %1$s.all_events_subscription (
-                seq_id SERIAL8 PRIMARY KEY,
+                seq_id bigint GENERATED ALWAYS AS IDENTITY,
                 event_id UUID NOT NULL
             );
-
+            
             CREATE OR REPLACE FUNCTION %1$s_insert_event_seq() RETURNS TRIGGER AS $$
             BEGIN
                 INSERT INTO %1$s.all_events_subscription(event_id) VALUES (NEW.id);
                 RETURN NEW;
             END;
             $$ LANGUAGE plpgsql;
-
+            
             CREATE OR REPLACE FUNCTION %1$s_notify_live() RETURNS TRIGGER AS $$
             DECLARE
                 payload TEXT;
@@ -48,11 +49,11 @@ public class PgEventStoreStatements extends EventStoreStatements {
                 RETURN NEW;
             END;
             $$ LANGUAGE plpgsql;
-
+            
             CREATE TRIGGER %1$s_trigger_after_insert_event
             AFTER INSERT ON %1$s.events
             FOR EACH ROW EXECUTE FUNCTION %1$s_insert_event_seq();
-
+            
             CREATE TRIGGER %1$s_trigger_after_insert_all_sub
             AFTER INSERT ON %1$s.all_events_subscription
             FOR EACH ROW EXECUTE FUNCTION %1$s_notify_live();
@@ -176,14 +177,14 @@ public class PgEventStoreStatements extends EventStoreStatements {
 
     @Override
     public Object convertUUID(String value) {
-        return UUID.fromString(value);
+        return UUIDUtil.uuid(value);
     }
 
     @Override
     public Iterable<?> convertUUIDs(Collection<String> input) {
         var result = new ArrayList<UUID>(input.size());
         for (var id : input) {
-            result.add(UUID.fromString(id));
+            result.add(UUIDUtil.uuid(id));
         }
         return result;
     }

@@ -11,14 +11,14 @@ public class MysqlMessageQueueStatements implements MessageQueueStatements {
         return List.of("""
                 CREATE TABLE IF NOT EXISTS message_queue (
                     message_id BINARY(16) NOT NULL PRIMARY KEY,
-                    queue_name VARCHAR(255) NOT NULL,
-                    type VARCHAR(255) NOT NULL,
-                    payload MEDIUMBLOB NOT NULL,
-                    delay_ms INTEGER NOT NULL DEFAULT 0,
-                    locked BOOLEAN NOT NULL DEFAULT FALSE,
+                    lock_expires_at TIMESTAMP(3) NULL,
                     created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
                     visible_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-                    lock_expires_at TIMESTAMP(3) NULL,
+                    delay_ms INTEGER NOT NULL DEFAULT 0,
+                    queue_name VARCHAR(255) NOT NULL,
+                    locked BOOLEAN NOT NULL DEFAULT FALSE,
+                    type VARCHAR(255) NOT NULL,
+                    payload MEDIUMBLOB NOT NULL,
                     INDEX idx_queue_name_visible_at (queue_name, visible_at)
                 )
                 """

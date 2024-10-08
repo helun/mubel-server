@@ -51,11 +51,6 @@ public class JdbcEventStore implements EventStore {
 
     private List<EventData> appendInternal(AppendOperation request) {
         return jdbi.inTransaction(x -> {
-            /*
-            if (isNotBlank(request.getRequestId()) && !requestLog.log(UUID.fromString(request.getRequestId()))) {
-                return List.of();
-            }
-             */
             final var result = new ArrayList<EventData>(request.getEventCount());
             final var edb = EventData.newBuilder();
             jdbi.useHandle(h -> {

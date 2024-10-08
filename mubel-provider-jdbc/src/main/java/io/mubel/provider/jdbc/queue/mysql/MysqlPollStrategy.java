@@ -1,5 +1,6 @@
 package io.mubel.provider.jdbc.queue.mysql;
 
+import com.fasterxml.uuid.impl.UUIDUtil;
 import io.mubel.provider.jdbc.queue.PollStrategy;
 import io.mubel.provider.jdbc.queue.QueuePollContext;
 import io.mubel.server.spi.queue.Message;
@@ -10,7 +11,6 @@ import org.slf4j.LoggerFactory;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 public class MysqlPollStrategy implements PollStrategy {
 
@@ -42,7 +42,7 @@ public class MysqlPollStrategy implements PollStrategy {
                     .map(view -> {
                         rawIds.add(view.getColumn(5, byte[].class));
                         return new Message(
-                                UUID.fromString(view.getColumn(1, String.class)),
+                                UUIDUtil.uuid(view.getColumn(1, String.class)),
                                 view.getColumn(2, String.class),
                                 view.getColumn(3, String.class),
                                 view.getColumn(4, byte[].class)

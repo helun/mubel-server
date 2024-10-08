@@ -12,14 +12,14 @@ public class PgMessageQueueStatements implements MessageQueueStatements {
         return List.of("""
                 CREATE TABLE IF NOT EXISTS message_queue (
                           message_id UUID PRIMARY KEY,
-                          queue_name TEXT NOT NULL,
-                          type TEXT NOT NULL,
-                          payload BYTEA NOT NULL,
-                          delay_ms INTEGER NOT NULL DEFAULT 0,
-                          locked BOOLEAN NOT NULL DEFAULT FALSE,
                           created_at TIMESTAMP  DEFAULT CURRENT_TIMESTAMP,
                           visible_at TIMESTAMP,
-                          lock_expires_at TIMESTAMP
+                          lock_expires_at TIMESTAMP,
+                          delay_ms INTEGER NOT NULL DEFAULT 0,
+                          locked BOOLEAN NOT NULL DEFAULT FALSE,
+                          queue_name TEXT NOT NULL,
+                          type TEXT NOT NULL,
+                          payload BYTEA NOT NULL
                       );
                 CREATE INDEX IF NOT EXISTS idx_queue_name_visible_at ON message_queue(queue_name, visible_at);
                 """);
@@ -50,6 +50,6 @@ public class PgMessageQueueStatements implements MessageQueueStatements {
                 FROM selected_messages
                 WHERE message_queue.message_id = selected_messages.message_id
                 RETURNING message_queue.message_id, queue_name, type, payload;
-                 """;
+                """;
     }
 }
