@@ -3,6 +3,7 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+    <description>mubel-provider-jdbc</description>
     <parent>
         <groupId>io.mubel</groupId>
         <artifactId>mubel-server-parent</artifactId>
@@ -23,7 +24,7 @@
             <dependency>
                 <groupId>org.jdbi</groupId>
                 <artifactId>jdbi3-bom</artifactId>
-                <version>3.43.0</version>
+                <version>3.47.0</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>

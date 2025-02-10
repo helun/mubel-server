@@ -7,13 +7,14 @@
     <artifactId>mubel-server-parent</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
+    <description>Multi Backend Event Log</description>
 
     <properties>
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <grpc.version>1.63.0</grpc.version>
-        <protobuf.version>3.25.3</protobuf.version>
-        <protoc.version>3.25.3</protoc.version>
+        <grpc.version>1.68.1</grpc.version>
+        <protobuf.version>3.25.5</protobuf.version>
+        <protoc.version>3.25.5</protoc.version>
     </properties>
 
     <dependencyManagement>
@@ -21,7 +22,7 @@
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
-                <version>3.3.0</version>
+                <version>3.3.5</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
@@ -46,7 +47,7 @@
             <dependency>
                 <groupId>com.fasterxml.uuid</groupId>
                 <artifactId>java-uuid-generator</artifactId>
-                <version>5.0.0</version>
+                <version>5.1.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -155,6 +156,26 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>com.mycila</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+                <version>4.3</version>
+                <configuration>
+                    <header>com/mycila/maven/plugin/license/templates/AGPL-3.txt</header>
+                    <properties>
+                        <owner>Henrik Barratt-Due</owner>
+                        <email>henrikbd@hey.com</email>
+                        <year>2025</year>
+                    </properties>
+                    <includes>
+                        <include>**/src/**/*.java</include>
+                    </includes>
+                    <excludes>
+                        <exclude>**/target/**</exclude>
+                        <exclude>**/generated-sources/**</exclude>
+                    </excludes>
+                </configuration>
             </plugin>
         </plugins>
     </build>
